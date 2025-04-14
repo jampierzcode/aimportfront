@@ -181,6 +181,13 @@ const CampaignDetails = () => {
       console.log(error);
     }
   };
+  const eliminarProductosNoEncontrados = () => {
+    const codigosRegistrados = pedidosRegistrados.map((p) => p.idSolicitante);
+    const nuevosPedidosCargados = pedidosCargados.filter((codigo) =>
+      codigosRegistrados.includes(codigo)
+    );
+    setPedidosCargados(nuevosPedidosCargados);
+  };
   const recogerPedidos = async () => {
     const codigosPedidos = pedidosRegistrados.map((p) => p.idSolicitante);
     const todosExisten = pedidosCargados.every((codigo) =>
@@ -246,6 +253,12 @@ const CampaignDetails = () => {
           onCancel={() => setIsModalOpen(false)}
           footer={null}
         >
+          <button
+            onClick={() => eliminarProductosNoEncontrados()}
+            className="px-3 py-2 flex items-center gap-3 bg-red-600 text-white text-sm"
+          >
+            Eliminar pedidos no registrados
+          </button>
           <BarcodeScanner
             isModal={isModalOpen}
             pedidos={pedidosRegistrados}
