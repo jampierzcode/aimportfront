@@ -27,6 +27,7 @@ import {
 } from "react-icons/fa";
 import { useAuth } from "../../components/AuthContext";
 const { RangePicker } = DatePicker;
+const { Option } = Select;
 const Usuarios = () => {
   const generateRandomPassword = (length) => {
     const characters =
