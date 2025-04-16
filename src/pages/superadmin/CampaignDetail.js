@@ -54,7 +54,7 @@ const CampaignDetails = () => {
       const worksheet = workbook.Sheets[sheetName];
       const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
-      setPedidos(
+      setPedidosExcel(
         jsonData.map((row, index) => ({
           id: index + 1,
           id_solicitante: row["ID Solicitante"],
@@ -90,7 +90,7 @@ const CampaignDetails = () => {
       return;
     }
 
-    const pedidosAsignados = pedidos
+    const pedidosAsignados = pedidosExcel
       .filter((p) => selectedRows.includes(p.id))
       .map((p) => ({
         ...p,
@@ -101,7 +101,7 @@ const CampaignDetails = () => {
     console.log(pedidosAsignados);
 
     setAsignados([...asignados, ...pedidosAsignados]);
-    setPedidos(pedidos.filter((p) => !selectedRows.includes(p.id)));
+    setPedidosExcel(pedidosExcel.filter((p) => !selectedRows.includes(p.id)));
     setSelectedRows([]);
     setModalVisibleSede(false);
   };
