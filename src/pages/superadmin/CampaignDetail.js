@@ -480,7 +480,7 @@ const CampaignDetails = () => {
                 selectedRowKeys: selectedRows,
                 onChange: setSelectedRows,
               }}
-              dataSource={pedidos}
+              dataSource={pedidosExcel}
               columns={[
                 { title: "ID solicitante", dataIndex: "id_solicitante" },
                 { title: "Solicitante", dataIndex: "nombre_solicitante" },
