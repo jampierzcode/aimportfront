@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from "react";
-import { Modal, Button } from "antd";
+import { Modal, Button, Spin } from "antd";
 import {
   UploadOutlined,
   CameraOutlined,
