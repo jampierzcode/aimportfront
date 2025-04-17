@@ -14,6 +14,7 @@ import Login from "./pages/Login";
 import Usuarios from "./pages/superadmin/Usuarios";
 import Layout from "./components/rolAdmin/Layout";
 import LayoutSuperadmin from "./components/rolSuperAdmin/Layout";
+import LayoutRepartidor from "./components/rolRepartidor/Layout";
 import Dashboard from "./pages/admin/Dashboard";
 import NotFoundPage from "./pages/NotFoundPage";
 import Identy from "./pages/Identy";
@@ -26,6 +27,7 @@ import PedidoManager from "./pages/superadmin/PedidoManager";
 import CampaignDetails from "./pages/superadmin/CampaignDetail";
 import BarcodeScanner from "./components/rolSuperAdmin/BarCodeScanner";
 import Generador from "./pages/superadmin/Generador";
+import PedidoRepartidor from "./pages/repartidor/PedidoRepartidor";
 
 function App() {
   return (
@@ -69,6 +71,17 @@ function App() {
               </PrivateRoute>
             }
           />
+          {/* RUTAS PARA USUARIO REPARTIDOR */}
+          <Route
+            path="/repartidor/pedidos"
+            element={
+              <PrivateRoute roles={["repartidor"]}>
+                <LayoutRepartidor>
+                  <PedidoRepartidor />
+                </LayoutRepartidor>
+              </PrivateRoute>
+            }
+          />
           {/* RUTAS PARA USUARIO ADMIN */}
           <Route
             path="/manager/dashboard"
@@ -90,26 +103,7 @@ function App() {
               </PrivateRoute>
             }
           />
-          <Route
-            path="/courses"
-            element={
-              <PrivateRoute roles={["admin"]}>
-                <Layout>
-                  <Courses />
-                </Layout>
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/course/:id"
-            element={
-              <PrivateRoute roles={["admin"]}>
-                <Layout>
-                  <CourseEditor />
-                </Layout>
-              </PrivateRoute>
-            }
-          />
+
           <Route path="/subirvideo" element={<VideoUploader />} />
 
           <Route

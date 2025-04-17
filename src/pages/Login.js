@@ -20,8 +20,8 @@ const Login = () => {
         navigate("/pedidos"); // Redirigir a la ruta de usuarios
       } else if (role === "admin") {
         navigate("/dashboard"); // Redirigir a la ruta de usuarios
-      } else if (role === "customer") {
-        navigate("/dashboard"); // Redirigir al panel con módulos en formato grid
+      } else if (role === "repartidor") {
+        navigate("/repartidor/pedidos"); // Redirigir al panel con módulos en formato grid
       } else {
         navigate("/"); // Ruta por defecto
       }

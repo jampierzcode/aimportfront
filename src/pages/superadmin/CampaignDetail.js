@@ -230,19 +230,22 @@ const CampaignDetails = () => {
             colorClass = "bg-gray-700 text-white";
             break;
           case "recepcionado":
-            colorClass = "bg-yellow-600 text-white"; // mostaza
+            colorClass = "bg-yellow-400 text-ywllow-600"; // mostaza
             break;
-          case "enviado":
-            colorClass = "bg-green-800 text-white";
-            break;
-          case "recepcionado en destino":
-            colorClass = "bg-primary text-white"; // usando tu clase personalizada
-            break;
-          case "entregado":
+          case "en camino":
             colorClass = "bg-blue-600 text-white";
             break;
+          case "en almacen":
+            colorClass = "bg-primary text-white"; // usando tu clase personalizada
+            break;
+          case "en reparto":
+            colorClass = "bg-purple-600 text-white"; // usando tu clase personalizada
+            break;
+          case "entregado":
+            colorClass = "bg-green-600 text-white";
+            break;
           default:
-            colorClass = "bg-gray-300 text-black";
+            colorClass = "bg-gray-300 text-gray-900";
         }
 
         return (
