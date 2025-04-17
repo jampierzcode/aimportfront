@@ -49,6 +49,7 @@ const ImageUploadModal = ({ isOpen, onClose, onUpload }) => {
       const files = images.map((img) => img.file);
       await onUpload(files);
       setImages([]);
+      setLoading(false);
     } catch (error) {
       console.log(error);
     }
