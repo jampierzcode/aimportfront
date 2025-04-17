@@ -6,15 +6,28 @@ import {
   DeleteOutlined,
   CloudUploadOutlined,
   CameraFilled,
+  RetweetOutlined,
 } from "@ant-design/icons";
 
 const ImageUploadModal = ({ isOpen, onClose, onUpload }) => {
   const [images, setImages] = useState([]);
   const [showCamera, setShowCamera] = useState(false);
+  const [facingMode, setFacingMode] = useState("user"); // default
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const fileInputRef = useRef(null);
   const [stream, setStream] = useState(null);
+
+  const isMobile = /Mobi|Android/i.test(navigator.userAgent);
+
+  useEffect(() => {
+    // Establecer facingMode por defecto
+    if (isMobile) {
+      setFacingMode("environment");
+    } else {
+      setFacingMode("user");
+    }
+  }, []);
 
   const handleFileChange = (e) => {
     const files = Array.from(e.target.files);
@@ -43,7 +56,7 @@ const ImageUploadModal = ({ isOpen, onClose, onUpload }) => {
     setShowCamera(true);
     try {
       const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: true,
+        video: { facingMode },
       });
       setStream(mediaStream);
       if (videoRef.current) {
@@ -62,19 +75,37 @@ const ImageUploadModal = ({ isOpen, onClose, onUpload }) => {
       setStream(null);
     }
   };
+
+  const toggleCamera = async () => {
+    const newMode = facingMode === "user" ? "environment" : "user";
+    setFacingMode(newMode);
+    if (stream) {
+      stream.getTracks().forEach((track) => track.stop());
+    }
+    try {
+      const mediaStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: newMode },
+      });
+      setStream(mediaStream);
+      if (videoRef.current) {
+        videoRef.current.srcObject = mediaStream;
+        videoRef.current.play();
+      }
+    } catch (err) {
+      console.error("Error al cambiar la cámara:", err);
+    }
+  };
+
   const takePhoto = () => {
     const video = videoRef.current;
     const canvas = canvasRef.current;
     if (video && canvas) {
       const width = video.videoWidth;
       const height = video.videoHeight;
-
       canvas.width = width;
       canvas.height = height;
-
       const ctx = canvas.getContext("2d");
       ctx.drawImage(video, 0, 0, width, height);
-
       canvas.toBlob((blob) => {
         const preview = URL.createObjectURL(blob);
         const file = new File([blob], `photo-${Date.now()}.jpg`, {
@@ -150,6 +181,9 @@ const ImageUploadModal = ({ isOpen, onClose, onUpload }) => {
             <Button icon={<CameraFilled />} type="primary" onClick={takePhoto}>
               Tomar foto
             </Button>
+            <Button icon={<RetweetOutlined />} onClick={toggleCamera}>
+              Voltear cámara
+            </Button>
             <Button danger onClick={closeCamera}>
               Cerrar cámara
             </Button>
@@ -174,7 +208,6 @@ const ImageUploadModal = ({ isOpen, onClose, onUpload }) => {
             ref={fileInputRef}
             onChange={handleFileChange}
           />
-
           <Button icon={<CameraOutlined />} onClick={openCamera}>
             Capturar desde cámara
           </Button>
