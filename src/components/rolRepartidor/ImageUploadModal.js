@@ -17,6 +17,7 @@ const ImageUploadModal = ({ isOpen, onClose, onUpload }) => {
   const canvasRef = useRef(null);
   const fileInputRef = useRef(null);
   const [stream, setStream] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   const isMobile = /Mobi|Android/i.test(navigator.userAgent);
 
@@ -43,6 +44,7 @@ const ImageUploadModal = ({ isOpen, onClose, onUpload }) => {
   };
 
   const handleUpload = async () => {
+    setLoading(true);
     try {
       const files = images.map((img) => img.file);
       await onUpload(files);
@@ -138,12 +140,19 @@ const ImageUploadModal = ({ isOpen, onClose, onUpload }) => {
           type="primary"
           icon={<CloudUploadOutlined />}
           onClick={handleUpload}
-          disabled={images.length === 0}
+          disabled={images.length === 0 || loading}
+          loading={loading}
         >
           Subir imágenes
         </Button>,
       ]}
     >
+      {/* Overlay de carga */}
+      {loading && (
+        <div className="absolute top-0 left-0 w-full h-full bg-white/70 z-50 flex items-center justify-center">
+          <Spin size="large" tip="Subiendo imágenes..." />
+        </div>
+      )}
       {/* Galería de previews */}
       <div className="flex flex-wrap gap-4 justify-center mt-4">
         {images.map((img, idx) => (
