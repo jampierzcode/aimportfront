@@ -95,29 +95,50 @@ const PedidoRepartidor = () => {
 
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const [searchField, setSearchField] = useState("idSolicitante");
 
   const applyFilters = () => {
-    const regex = /^[a-zA-Z0-9\s]*$/; // Solo letras, números y espacios
-    const bol = regex.test(searchTerm);
+    let filtered = pedidos;
 
-    if (bol) {
-      const filteredPedidos = pedidos.filter((pedido) => {
+    if (searchTerm.trim() !== "") {
+      if (
+        searchField === "idSolicitante" ||
+        searchField === "nombreSolicitante"
+      ) {
+        const regex = /^[a-zA-Z0-9\s]*$/;
+        if (!regex.test(searchTerm)) {
+          setSearchTerm("");
+          return;
+        }
+
         const searchRegex = new RegExp(searchTerm, "i");
 
-        const value = pedido.idSolicitante;
-        const matchSearch =
-          value !== null &&
-          value !== undefined &&
-          searchRegex.test(value.toString());
+        filtered = pedidos.filter((pedido) => {
+          const value = pedido[searchField];
+          return (
+            value !== null &&
+            value !== undefined &&
+            searchRegex.test(value.toString())
+          );
+        });
+      }
 
-        return matchSearch;
-      });
-
-      setVisiblePedidos(filteredPedidos);
-    } else {
-      setSearchTerm("");
+      if (searchField === "status") {
+        filtered = pedidos.filter((pedido) => {
+          return (
+            pedido.status &&
+            pedido.status.toLowerCase() === searchTerm.toLowerCase()
+          );
+        });
+      }
     }
+
+    setVisiblePedidos(filtered);
   };
+
+  useEffect(() => {
+    applyFilters();
+  }, [searchTerm, searchField]);
 
   // useEffect para manejar el filtrado y paginación
   useEffect(() => {
@@ -185,9 +206,9 @@ const PedidoRepartidor = () => {
             return (
               <button
                 onClick={() => handleVerFotos(record.multimedia)}
-                className="px-3 py-2 rounded text-white bg-secondary"
+                className="px-3 py-2 rounded text-white bg-gray-700"
               >
-                Ver fotos
+                Ver fotos: {record?.multimedia?.length}
               </button>
             );
         }
@@ -219,7 +240,7 @@ const PedidoRepartidor = () => {
             colorClass = "bg-primary text-white"; // usando tu clase personalizada
             break;
           case "en reparto":
-            colorClass = "bg-purple-600 text-white"; // usando tu clase personalizada
+            colorClass = "text-yellow-700 bg-yellow-300"; // usando tu clase personalizada
             break;
           case "entregado":
             colorClass = "bg-green-600 text-white";
@@ -236,6 +257,11 @@ const PedidoRepartidor = () => {
           </span>
         );
       },
+    },
+    {
+      title: "Nombre Solicitante",
+      dataIndex: "nombreSolicitante",
+      key: "nombreSolicitante",
     },
     {
       title: "Dirección",
@@ -272,6 +298,24 @@ const PedidoRepartidor = () => {
         <h2 className="text-2xl">
           <b>Mis pedidos</b>
         </h2>
+        <div className="flex gap-4">
+          <div className="box px-3 py-2 rounded text-sm font-bold bg-primary text-white">
+            Total asignados <span>{pedidos.length}</span>
+          </div>
+          <div className="box px-3 py-2 rounded text-sm font-bold bg-green-600 text-white">
+            Entregados{" "}
+            <span>
+              {pedidos.filter((p) => p.status === "entregado").length}
+            </span>
+          </div>
+          <div className="box px-3 py-2 rounded text-sm font-bold bg-yellow-300 text-yellow-700">
+            Faltantes{" "}
+            <span>
+              {pedidos.length -
+                pedidos.filter((p) => p.status === "entregado").length}
+            </span>
+          </div>
+        </div>
       </div>
       <ImageUploadModal
         isOpen={modalVisible}
@@ -299,17 +343,50 @@ const PedidoRepartidor = () => {
         <Spin size="large" />
       ) : (
         <div>
-          <h3 className="text-xs">Puedes ver todos tus pedidos aquí</h3>
-          <div className="search-hook flex-grow">
-            <div className="inmocms-input bg-white border rounded border-gray-300 flex text-sm h-[46px] overflow-hidden font-normal">
-              <input
-                className="h-full px-[12px] w-full border-0 border-none focus:outline-none"
-                placeholder="Ingresa numero de tracking 00000001"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                autoComplete="on"
-              />
-              <AiOutlineSearch className="h-full w-[24px] min-w-[24px] opacity-5 mx-[12px]" />
+          <h3 className="text-xs mb-6">Puedes ver todos tus pedidos aquí</h3>
+          <div className="flex flex-col md:flex-row gap-4">
+            {/* Selector del tipo de búsqueda */}
+            <select
+              value={searchField}
+              onChange={(e) => {
+                setSearchField(e.target.value);
+                setSearchTerm(""); // Resetear el input al cambiar tipo
+              }}
+              className="border border-gray-300 rounded px-3 py-2 text-sm"
+            >
+              <option value="idSolicitante">Buscar por ID</option>
+              <option value="nombreSolicitante">Buscar por Nombre</option>
+              <option value="status">Buscar por Estado</option>
+            </select>
+
+            {/* Campo dinámico según tipo de búsqueda */}
+            <div className="flex-grow">
+              {searchField === "status" ? (
+                <select
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="border border-gray-300 rounded px-3 py-2 text-sm w-full"
+                >
+                  <option value="">Seleccionar estado</option>
+                  <option value="en reparto">En Reparto</option>
+                  <option value="entregado">Entregado</option>
+                </select>
+              ) : (
+                <div className="inmocms-input bg-white border rounded border-gray-300 flex text-sm h-[46px] overflow-hidden font-normal">
+                  <input
+                    className="h-full px-[12px] w-full border-0 border-none focus:outline-none"
+                    placeholder={
+                      searchField === "idSolicitante"
+                        ? "Ingresa número de tracking 00000001"
+                        : "Ingresa nombre del solicitante"
+                    }
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    autoComplete="on"
+                  />
+                  <AiOutlineSearch className="h-full w-[24px] min-w-[24px] opacity-5 mx-[12px]" />
+                </div>
+              )}
             </div>
           </div>
           <Table
