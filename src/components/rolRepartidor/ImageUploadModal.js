@@ -213,7 +213,7 @@ const ImageUploadModal = ({ isOpen, onClose, onUpload }) => {
           <input
             type="file"
             multiple
-            accept="image/*"
+            // accept="image/*"
             hidden
             ref={fileInputRef}
             onChange={handleFileChange}
