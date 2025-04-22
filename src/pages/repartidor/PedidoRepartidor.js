@@ -2,7 +2,18 @@ import React, { useState, useEffect } from "react";
 import * as XLSX from "xlsx";
 import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
-import { Table, message, Spin, Modal, Select } from "antd";
+import {
+  Table,
+  message,
+  Spin,
+  Modal,
+  Select,
+  Row,
+  Button,
+  Col,
+  Checkbox,
+  Image,
+} from "antd";
 import { AiOutlineSearch } from "react-icons/ai";
 import { useAuth } from "../../components/AuthContext";
 import ImageUploadModal from "../../components/rolRepartidor/ImageUploadModal";
@@ -27,10 +38,73 @@ const PedidoRepartidor = () => {
 
   // pedidos que se suben al excel useState
   const [modalVisible, setModalVisible] = useState(false);
+  const [modalVisibleMorePhotos, setModalVisibleMorePhotos] = useState(false);
+  const [
+    pedidoIdParaActualizarMultimedia,
+    setPedidoIdParaActualizarMultimedia,
+  ] = useState(null);
+  // estados para eliminar imagenes
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [selectedImages, setSelectedImages] = useState([]);
+  const [loadingDelete, setLoadingDelete] = useState(false);
 
-  const [pedidosExcel, setPedidosExcel] = useState([]);
-  const [asignados, setAsignados] = useState([]);
-  const [fileSelect, setFileSelect] = useState(null);
+  const toggleImageSelection = (item) => {
+    setSelectedImages((prev) => {
+      const exists = prev.some((img) => img.url === item.url);
+      return exists
+        ? prev.filter((img) => img.url !== item.url)
+        : [...prev, item];
+    });
+  };
+
+  const handleDeleteSelected = async () => {
+    if (selectedImages.length === 0) {
+      message.warning("No has seleccionado ninguna imagen.");
+      return;
+    }
+
+    setLoadingDelete(true);
+
+    try {
+      const deleteMultimedia = await axios.post(
+        `${apiUrl}/deleteMultimediaMasive`,
+        { pedidos: selectedImages },
+        {
+          headers: {
+            Authorization: `Bearer ${auth.token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if ((deleteMultimedia.status = "success")) {
+        const payload = {
+          urls: selectedImages.map((img) => img.url),
+        };
+        const response = await axios.delete(`${apiUrlUpload}/index.php`, {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+          data: payload,
+        });
+        const data = response.data;
+        if (data.success) {
+          message.success("Imágenes eliminadas correctamente");
+          await fetchPedidosAsignados(); // vuelve a cargar los datos del pedido
+          setPedidoIdParaActualizarMultimedia(pedidoId);
+
+          setSelectedImages([]);
+        }
+      } else {
+        new Error(deleteMultimedia.error);
+      }
+    } catch (error) {
+      console.error("Error al eliminar imágenes:", error);
+      message.error("Ocurrió un error al eliminar las imágenes.");
+    } finally {
+      setLoadingDelete(false);
+    }
+  };
 
   // ✅ Enviar pedidos a la API
   const handleUpload = async (files) => {
@@ -92,6 +166,54 @@ const PedidoRepartidor = () => {
       message.error("Ocurrió un error al subir las imágenes.");
     }
   };
+  // ✅ Subir mas fotos a la API
+  const handleUploadMorePhotos = async (files) => {
+    const formData = new FormData();
+    const searchPedido = pedidos.find((p) => p.id === pedidoId);
+
+    formData.append("folder", `${searchPedido.idSolicitante}`);
+
+    files.forEach((file) => {
+      formData.append("files[]", file);
+    });
+
+    try {
+      const response = await axios.post(`${apiUrlUpload}/index.php`, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      const data = response.data;
+      console.log(data);
+      if (data.success) {
+        console.log(data.files);
+        const responseEnviiosMultimedia = await axios.post(
+          `${apiUrl}/pedidosMultimedia`,
+          { files: data.files, pedido_id: pedidoId },
+          {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${auth.token}`,
+            },
+          }
+        );
+        console.log(response);
+        const dataMultimedia = responseEnviiosMultimedia.data;
+        if (dataMultimedia.status === "success") {
+          message.success("Se subieron las imagenes correctamente");
+          await fetchPedidosAsignados();
+          setPedidoIdParaActualizarMultimedia(pedidoId);
+
+          setModalVisibleMorePhotos(false);
+        } else {
+          new Error("error de compilacion");
+        }
+      }
+    } catch (error) {
+      console.error("Error al subir imágenes:", error);
+      message.error("Ocurrió un error al subir las imágenes.");
+    }
+  };
 
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
@@ -144,6 +266,18 @@ const PedidoRepartidor = () => {
   useEffect(() => {
     applyFilters(); // Aplicar filtro inicialmente
   }, [searchTerm]);
+  useEffect(() => {
+    if (pedidoIdParaActualizarMultimedia && pedidos.length > 0) {
+      const pedidoActualizado = pedidos.find(
+        (p) => p.id === pedidoIdParaActualizarMultimedia
+      );
+      if (pedidoActualizado) {
+        setMultimedia(pedidoActualizado.multimedia);
+        setPedidoIdParaActualizarMultimedia(null); // Limpiar
+        setModalVisibleMorePhotos(false); // Cerrar modal si quieres aquí
+      }
+    }
+  }, [pedidos, pedidoIdParaActualizarMultimedia]);
 
   const fetchPedidosAsignados = async () => {
     try {
@@ -171,13 +305,17 @@ const PedidoRepartidor = () => {
     setPedidoId(id);
     setModalVisible(true);
   };
+  const handleMorePhotos = () => {
+    setModalVisibleMorePhotos(true);
+  };
   const handleCancelEntrega = (id) => {
     setPedidoId(null);
     setModalVisible(false);
   };
   const [isOpenMultimedia, setIsOpenMultimedia] = useState(false);
   const [multimedia, setMultimedia] = useState([]);
-  const handleVerFotos = (multimedia) => {
+  const handleVerFotos = (multimedia, id) => {
+    setPedidoId(id);
     setIsOpenMultimedia(true);
     setMultimedia(multimedia);
   };
@@ -205,7 +343,7 @@ const PedidoRepartidor = () => {
           default:
             return (
               <button
-                onClick={() => handleVerFotos(record.multimedia)}
+                onClick={() => handleVerFotos(record.multimedia, record.id)}
                 className="px-3 py-2 rounded text-white bg-gray-700"
               >
                 Ver fotos: {record?.multimedia?.length}
@@ -322,6 +460,63 @@ const PedidoRepartidor = () => {
         onClose={() => handleCancelEntrega()}
         onUpload={handleUpload}
       />
+      <ImageUploadModal
+        isOpen={modalVisibleMorePhotos}
+        onClose={() => setModalVisibleMorePhotos(false)}
+        onUpload={handleUploadMorePhotos}
+      />
+
+      <Modal
+        title="Eliminar Imágenes"
+        open={deleteModalVisible}
+        onCancel={() => {
+          setDeleteModalVisible(false);
+          setSelectedImages([]);
+        }}
+        footer={false}
+        width={800}
+      >
+        <Row gutter={[16, 16]}>
+          {multimedia.map((item) => (
+            <Col key={item.id} span={6}>
+              <div style={{ position: "relative" }}>
+                <Image
+                  src={item.url}
+                  alt="Imagen"
+                  width="100%"
+                  height={150}
+                  style={{ objectFit: "cover", borderRadius: "8px" }}
+                />
+                <Checkbox
+                  checked={selectedImages.some((img) => img.url === item.url)}
+                  onChange={() => toggleImageSelection(item)}
+                  style={{
+                    position: "absolute",
+                    top: 8,
+                    left: 8,
+                    background: "white",
+                    padding: "2px",
+                    borderRadius: "50%",
+                  }}
+                />
+              </div>
+            </Col>
+          ))}
+        </Row>
+
+        <div style={{ marginTop: 24, textAlign: "right" }}>
+          <Button
+            danger
+            type="primary"
+            // icon={<DeleteOutlined />}
+            onClick={handleDeleteSelected}
+            loading={loadingDelete}
+          >
+            Eliminar seleccionadas
+          </Button>
+        </div>
+      </Modal>
+
       <Modal
         open={isOpenMultimedia}
         onCancel={handleCloseMultimedia}
@@ -329,9 +524,23 @@ const PedidoRepartidor = () => {
         footer={false}
       >
         <div className="flex gap-3 flex-wrap">
-          {multimedia.map((m) => {
+          <div className="flex gap-3">
+            <button
+              onClick={() => handleMorePhotos()}
+              className="px-3 py-2 rounded bg-primary text-white"
+            >
+              Subir imagenes
+            </button>
+            <button
+              onClick={() => setDeleteModalVisible(true)}
+              className="px-3 py-2 rounded bg-red-700 text-white"
+            >
+              Eliminar imagenes
+            </button>
+          </div>
+          {multimedia.map((m, index) => {
             return (
-              <div className="m">
+              <div className="m" key={index}>
                 <img className="h-[200px] object-contain" src={m.url} alt="" />
               </div>
             );
