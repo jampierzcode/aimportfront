@@ -83,7 +83,7 @@ const PedidoRepartidor = () => {
         };
         const response = await axios.delete(`${apiUrlUpload}/index.php`, {
           headers: {
-            "Content-Type": "multipart/form-data",
+            "Content-Type": "application/json", // <--- JSON, no multipart
           },
           data: payload,
         });
