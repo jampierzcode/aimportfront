@@ -262,10 +262,6 @@ const PedidoRepartidor = () => {
     applyFilters();
   }, [searchTerm, searchField]);
 
-  // useEffect para manejar el filtrado y paginación
-  useEffect(() => {
-    applyFilters(); // Aplicar filtro inicialmente
-  }, [searchTerm]);
   useEffect(() => {
     if (pedidoIdParaActualizarMultimedia && pedidos.length > 0) {
       const pedidoActualizado = pedidos.find(
@@ -523,8 +519,8 @@ const PedidoRepartidor = () => {
         onClose={handleCloseMultimedia}
         footer={false}
       >
-        <div className="flex gap-3 flex-wrap">
-          <div className="flex gap-3">
+        <div className="w-full">
+          <div className="w-full flex gap-3 mb-6">
             <button
               onClick={() => handleMorePhotos()}
               className="px-3 py-2 rounded bg-primary text-white"
@@ -538,13 +534,19 @@ const PedidoRepartidor = () => {
               Eliminar imagenes
             </button>
           </div>
-          {multimedia.map((m, index) => {
-            return (
-              <div className="m" key={index}>
-                <img className="h-[200px] object-contain" src={m.url} alt="" />
-              </div>
-            );
-          })}
+          <div className="flex gap-3 flex-wrap">
+            {multimedia.map((m, index) => {
+              return (
+                <div className="m" key={index}>
+                  <img
+                    className="h-[200px] object-contain"
+                    src={m.url}
+                    alt=""
+                  />
+                </div>
+              );
+            })}
+          </div>
         </div>
       </Modal>
 

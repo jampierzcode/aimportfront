@@ -2,7 +2,18 @@ import React, { useState, useEffect } from "react";
 import * as XLSX from "xlsx";
 import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
-import { Table, message, Spin, Modal, Select, Button } from "antd";
+import {
+  Table,
+  message,
+  Spin,
+  Modal,
+  Select,
+  Button,
+  Row,
+  Col,
+  Image,
+  Checkbox,
+} from "antd";
 import { ExclamationCircleOutlined } from "@ant-design/icons";
 import { FaArrowLeft, FaFileExcel } from "react-icons/fa";
 import {
@@ -12,6 +23,8 @@ import {
 } from "react-icons/ai";
 import BarcodeScanner from "../../components/rolSuperAdmin/BarCodeScanner";
 import { useAuth } from "../../components/AuthContext";
+import ImageUploadModal from "../../components/rolRepartidor/ImageUploadModal";
+import EstadisticasModal from "./EstadisticasModal";
 const { confirm } = Modal;
 
 const { Option } = Select;
@@ -23,6 +36,10 @@ const CampaignDetails = () => {
   const apiUrl = process.env.REACT_APP_API_URL;
   const { id } = useParams(); // Obtener ID de la URL
   const [campaign, setCampaign] = useState(null);
+  const apiUrlUpload = process.env.REACT_APP_UP_MULTIMEDIA;
+
+  const [pedidoId, setPedidoId] = useState(null);
+
   const [pedidos, setPedidos] = useState([]);
   const [visiblePedidos, setVisiblePedidos] = useState([]);
   const [pedidosRegistrados, setPedidosRegistrados] = useState([]);
@@ -31,6 +48,75 @@ const CampaignDetails = () => {
 
   // pedidos que se suben al excel useState
   const [modalVisible, setModalVisible] = useState(false);
+  const [modalVisibleMorePhotos, setModalVisibleMorePhotos] = useState(false);
+  const [
+    pedidoIdParaActualizarMultimedia,
+    setPedidoIdParaActualizarMultimedia,
+  ] = useState(null);
+
+  // estados para eliminar imagenes
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [selectedImages, setSelectedImages] = useState([]);
+  const [loadingDelete, setLoadingDelete] = useState(false);
+
+  const toggleImageSelection = (item) => {
+    setSelectedImages((prev) => {
+      const exists = prev.some((img) => img.url === item.url);
+      return exists
+        ? prev.filter((img) => img.url !== item.url)
+        : [...prev, item];
+    });
+  };
+
+  const handleDeleteSelected = async () => {
+    if (selectedImages.length === 0) {
+      message.warning("No has seleccionado ninguna imagen.");
+      return;
+    }
+
+    setLoadingDelete(true);
+
+    try {
+      const deleteMultimedia = await axios.post(
+        `${apiUrl}/deleteMultimediaMasive`,
+        { pedidos: selectedImages },
+        {
+          headers: {
+            Authorization: `Bearer ${auth.token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if ((deleteMultimedia.status = "success")) {
+        const payload = {
+          urls: selectedImages.map((img) => img.url),
+        };
+        const response = await axios.delete(`${apiUrlUpload}/index.php`, {
+          headers: {
+            "Content-Type": "application/json", // <--- JSON, no multipart
+          },
+          data: payload,
+        });
+        const data = response.data;
+        if (data.success) {
+          message.success("Imágenes eliminadas correctamente");
+          await fetchCampaignData(); // vuelve a cargar los datos del pedido
+          setPedidoIdParaActualizarMultimedia(pedidoId);
+
+          setSelectedImages([]);
+        }
+      } else {
+        new Error(deleteMultimedia.error);
+      }
+    } catch (error) {
+      console.error("Error al eliminar imágenes:", error);
+      message.error("Ocurrió un error al eliminar las imágenes.");
+    } finally {
+      setLoadingDelete(false);
+    }
+  };
+
   const [modalVisibleSede, setModalVisibleSede] = useState(false);
   const [sedeSeleccionada, setSedeSeleccionada] = useState(null);
   const [sedeSeleccionadaDestino, setSedeSeleccionadaDestino] = useState(null);
@@ -147,37 +233,115 @@ const CampaignDetails = () => {
   useEffect(() => {
     buscar_sedes();
   }, [0]);
+  // ✅ Subir mas fotos a la API
+  const handleUploadMorePhotos = async (files) => {
+    const formData = new FormData();
+    const searchPedido = pedidos.find((p) => p.id === pedidoId);
+
+    formData.append("folder", `${searchPedido.idSolicitante}`);
+
+    files.forEach((file) => {
+      formData.append("files[]", file);
+    });
+
+    try {
+      const response = await axios.post(`${apiUrlUpload}/index.php`, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      const data = response.data;
+      console.log(data);
+      if (data.success) {
+        console.log(data.files);
+        const responseEnviiosMultimedia = await axios.post(
+          `${apiUrl}/pedidosMultimedia`,
+          { files: data.files, pedido_id: pedidoId },
+          {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${auth.token}`,
+            },
+          }
+        );
+        console.log(response);
+        const dataMultimedia = responseEnviiosMultimedia.data;
+        if (dataMultimedia.status === "success") {
+          message.success("Se subieron las imagenes correctamente");
+          await fetchCampaignData();
+          setPedidoIdParaActualizarMultimedia(pedidoId);
+
+          setModalVisibleMorePhotos(false);
+        } else {
+          new Error("error de compilacion");
+        }
+      }
+    } catch (error) {
+      console.error("Error al subir imágenes:", error);
+      message.error("Ocurrió un error al subir las imágenes.");
+    }
+  };
 
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const [searchField, setSearchField] = useState("idSolicitante");
 
   const applyFilters = () => {
-    const regex = /^[a-zA-Z0-9\s]*$/; // Solo letras, números y espacios
-    const bol = regex.test(searchTerm);
+    let filtered = pedidos;
 
-    if (bol) {
-      const filteredPedidos = pedidos.filter((pedido) => {
+    if (searchTerm.trim() !== "") {
+      if (
+        searchField === "idSolicitante" ||
+        searchField === "nombreSolicitante"
+      ) {
+        const regex = /^[a-zA-Z0-9\s]*$/;
+        if (!regex.test(searchTerm)) {
+          setSearchTerm("");
+          return;
+        }
+
         const searchRegex = new RegExp(searchTerm, "i");
 
-        const value = pedido.idSolicitante;
-        const matchSearch =
-          value !== null &&
-          value !== undefined &&
-          searchRegex.test(value.toString());
+        filtered = pedidos.filter((pedido) => {
+          const value = pedido[searchField];
+          return (
+            value !== null &&
+            value !== undefined &&
+            searchRegex.test(value.toString())
+          );
+        });
+      }
 
-        return matchSearch;
-      });
-
-      setVisiblePedidos(filteredPedidos);
-    } else {
-      setSearchTerm("");
+      if (searchField === "status") {
+        filtered = pedidos.filter((pedido) => {
+          return (
+            pedido.status &&
+            pedido.status.toLowerCase() === searchTerm.toLowerCase()
+          );
+        });
+      }
     }
+
+    setVisiblePedidos(filtered);
   };
 
   // useEffect para manejar el filtrado y paginación
   useEffect(() => {
     applyFilters(); // Aplicar filtro inicialmente
-  }, [searchTerm]);
+  }, [searchTerm, searchField]);
+
+  useEffect(() => {
+    if (pedidoIdParaActualizarMultimedia && pedidos.length > 0) {
+      const pedidoActualizado = pedidos.find(
+        (p) => p.id === pedidoIdParaActualizarMultimedia
+      );
+      if (pedidoActualizado) {
+        setMultimedia(pedidoActualizado.multimedia);
+        setPedidoIdParaActualizarMultimedia(null); // Limpiar
+        setModalVisibleMorePhotos(false); // Cerrar modal si quieres aquí
+      }
+    }
+  }, [pedidos, pedidoIdParaActualizarMultimedia]);
 
   const handleReadPedidos = () => {
     setIsModalOpen(true);
@@ -212,7 +376,37 @@ const CampaignDetails = () => {
     fetchCampaignData();
   }, [id]);
 
+  const handleMorePhotos = () => {
+    setModalVisibleMorePhotos(true);
+  };
+
+  const [isOpenMultimedia, setIsOpenMultimedia] = useState(false);
+  const [multimedia, setMultimedia] = useState([]);
+  const handleVerFotos = (multimedia, id) => {
+    setPedidoId(id);
+    setIsOpenMultimedia(true);
+    setMultimedia(multimedia);
+  };
+  const handleCloseMultimedia = () => {
+    setIsOpenMultimedia(false);
+    setMultimedia([]);
+  };
+
   const columns = [
+    {
+      title: "ID Pedido",
+      key: "idSolicitante",
+      render: (_, record) => {
+        return (
+          <button
+            onClick={() => handleVerFotos(record.multimedia, record.id)}
+            className="px-3 py-2 rounded text-white bg-gray-700"
+          >
+            Ver fotos: {record?.multimedia?.length}
+          </button>
+        );
+      },
+    },
     {
       title: "ID Pedido",
       dataIndex: "idSolicitante",
@@ -523,21 +717,147 @@ const CampaignDetails = () => {
           <Button onClick={subirPedidos}>Subir Data</Button>
         </div>
       </Modal>
+      <EstadisticasModal pedidos={pedidos} />
+      <ImageUploadModal
+        isOpen={modalVisibleMorePhotos}
+        onClose={() => setModalVisibleMorePhotos(false)}
+        onUpload={handleUploadMorePhotos}
+      />
+
+      <Modal
+        title="Eliminar Imágenes"
+        open={deleteModalVisible}
+        onCancel={() => {
+          setDeleteModalVisible(false);
+          setSelectedImages([]);
+        }}
+        footer={false}
+        width={800}
+      >
+        <Row gutter={[16, 16]}>
+          {multimedia.map((item) => (
+            <Col key={item.id} span={6}>
+              <div style={{ position: "relative" }}>
+                <Image
+                  src={item.url}
+                  alt="Imagen"
+                  width="100%"
+                  height={150}
+                  style={{ objectFit: "cover", borderRadius: "8px" }}
+                />
+                <Checkbox
+                  checked={selectedImages.some((img) => img.url === item.url)}
+                  onChange={() => toggleImageSelection(item)}
+                  style={{
+                    position: "absolute",
+                    top: 8,
+                    left: 8,
+                    background: "white",
+                    padding: "2px",
+                    borderRadius: "50%",
+                  }}
+                />
+              </div>
+            </Col>
+          ))}
+        </Row>
+
+        <div style={{ marginTop: 24, textAlign: "right" }}>
+          <Button
+            danger
+            type="primary"
+            // icon={<DeleteOutlined />}
+            onClick={handleDeleteSelected}
+            loading={loadingDelete}
+          >
+            Eliminar seleccionadas
+          </Button>
+        </div>
+      </Modal>
+      <Modal
+        open={isOpenMultimedia}
+        onCancel={handleCloseMultimedia}
+        onClose={handleCloseMultimedia}
+        footer={false}
+      >
+        <div className="w-full">
+          <div className="w-full flex gap-3 mb-6">
+            <button
+              onClick={() => handleMorePhotos()}
+              className="px-3 py-2 rounded bg-primary text-white"
+            >
+              Subir imagenes
+            </button>
+            <button
+              onClick={() => setDeleteModalVisible(true)}
+              className="px-3 py-2 rounded bg-red-700 text-white"
+            >
+              Eliminar imagenes
+            </button>
+          </div>
+          <div className="flex gap-3 flex-wrap">
+            {multimedia.map((m, index) => {
+              return (
+                <div className="m" key={index}>
+                  <img
+                    className="h-[200px] object-contain"
+                    src={m.url}
+                    alt=""
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </Modal>
       {loading ? (
         <Spin size="large" />
       ) : (
         <div>
           <h3 className="text-xs">Puedes ver todos tus pedidos aquí</h3>
-          <div className="search-hook flex-grow">
-            <div className="inmocms-input bg-white border rounded border-gray-300 flex text-sm h-[46px] overflow-hidden font-normal">
-              <input
-                className="h-full px-[12px] w-full border-0 border-none focus:outline-none"
-                placeholder="Ingresa numero de tracking 00000001"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                autoComplete="on"
-              />
-              <AiOutlineSearch className="h-full w-[24px] min-w-[24px] opacity-5 mx-[12px]" />
+          <div className="flex flex-col md:flex-row gap-4">
+            {/* Selector del tipo de búsqueda */}
+            <select
+              value={searchField}
+              onChange={(e) => {
+                setSearchField(e.target.value);
+                setSearchTerm(""); // Resetear el input al cambiar tipo
+              }}
+              className="border border-gray-300 rounded px-3 py-2 text-sm"
+            >
+              <option value="idSolicitante">Buscar por ID</option>
+              <option value="nombreSolicitante">Buscar por Nombre</option>
+              <option value="status">Buscar por Estado</option>
+            </select>
+
+            {/* Campo dinámico según tipo de búsqueda */}
+            <div className="flex-grow">
+              {searchField === "status" ? (
+                <select
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="border border-gray-300 rounded px-3 py-2 text-sm w-full"
+                >
+                  <option value="">Seleccionar estado</option>
+                  <option value="en reparto">En Reparto</option>
+                  <option value="entregado">Entregado</option>
+                </select>
+              ) : (
+                <div className="inmocms-input bg-white border rounded border-gray-300 flex text-sm h-[46px] overflow-hidden font-normal">
+                  <input
+                    className="h-full px-[12px] w-full border-0 border-none focus:outline-none"
+                    placeholder={
+                      searchField === "idSolicitante"
+                        ? "Ingresa número de tracking 00000001"
+                        : "Ingresa nombre del solicitante"
+                    }
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    autoComplete="on"
+                  />
+                  <AiOutlineSearch className="h-full w-[24px] min-w-[24px] opacity-5 mx-[12px]" />
+                </div>
+              )}
             </div>
           </div>
           <Table

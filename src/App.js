@@ -28,6 +28,8 @@ import CampaignDetails from "./pages/superadmin/CampaignDetail";
 import BarcodeScanner from "./components/rolSuperAdmin/BarCodeScanner";
 import Generador from "./pages/superadmin/Generador";
 import PedidoRepartidor from "./pages/repartidor/PedidoRepartidor";
+import SqlGenerator from "./pages/superadmin/SqlGenerator";
+import ExcelUpload from "./pages/superadmin/ExcelUpload";
 
 function App() {
   return (
@@ -61,6 +63,8 @@ function App() {
           />
           <Route path="/scanner" element={<BarcodeScanner />} />
           <Route path="/generator-codigos/:id" element={<Generador />} />
+          <Route path="/generator-sqls" element={<SqlGenerator />} />
+          <Route path="/generator-update" element={<ExcelUpload />} />
           <Route
             path="/campaigns/:id"
             element={
