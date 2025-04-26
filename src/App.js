@@ -15,6 +15,7 @@ import Usuarios from "./pages/superadmin/Usuarios";
 import Layout from "./components/rolAdmin/Layout";
 import LayoutSuperadmin from "./components/rolSuperAdmin/Layout";
 import LayoutRepartidor from "./components/rolRepartidor/Layout";
+import LayoutCliente from "./components/rolCliente/Layout";
 import Dashboard from "./pages/admin/Dashboard";
 import NotFoundPage from "./pages/NotFoundPage";
 import Identy from "./pages/Identy";
@@ -30,6 +31,7 @@ import Generador from "./pages/superadmin/Generador";
 import PedidoRepartidor from "./pages/repartidor/PedidoRepartidor";
 import SqlGenerator from "./pages/superadmin/SqlGenerator";
 import ExcelUpload from "./pages/superadmin/ExcelUpload";
+import PedidosCliente from "./pages/cliente/Pedidos";
 
 function App() {
   return (
@@ -83,6 +85,17 @@ function App() {
                 <LayoutRepartidor>
                   <PedidoRepartidor />
                 </LayoutRepartidor>
+              </PrivateRoute>
+            }
+          />
+          {/* RUTAS PARA USUARIO CLIENTE */}
+          <Route
+            path="/cliente/pedidos"
+            element={
+              <PrivateRoute roles={["cliente"]}>
+                <LayoutCliente>
+                  <PedidosCliente />
+                </LayoutCliente>
               </PrivateRoute>
             }
           />

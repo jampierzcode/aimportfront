@@ -12,6 +12,7 @@ const PedidoManager = () => {
   const navigate = useNavigate();
   const apiUrl = process.env.REACT_APP_API_URL;
   const [campaigns, setCampaigns] = useState([]); // Estado para almacenar campañas
+  const [clientes, setClientes] = useState([]); // Estado para almacenar campañas
   const [sedes, setSedes] = useState([]);
   const [pedidos, setPedidos] = useState([]);
   const [asignados, setAsignados] = useState([]);
@@ -22,6 +23,23 @@ const PedidoManager = () => {
   const [sedeSeleccionada, setSedeSeleccionada] = useState(null);
   const [sedeSeleccionadaDestino, setSedeSeleccionadaDestino] = useState(null);
   const [fileSelect, setFileSelect] = useState(null);
+  const [selectCliente, setSelectCliente] = useState(null);
+  const handleChange = (value) => {
+    const clienteSeleccionado = clientes.find(
+      (cliente) => cliente.id === value
+    );
+    setSelectCliente(clienteSeleccionado);
+  };
+
+  const filterOption = (input, option) => {
+    const cliente = clientes.find((c) => c.id === option.value);
+    if (!cliente) return false;
+    const inputLower = input.toLowerCase();
+    return (
+      cliente.ruc.toLowerCase().includes(inputLower) ||
+      cliente.razonSocial.toLowerCase().includes(inputLower)
+    );
+  };
 
   const columnsCampaign = [
     {
@@ -69,6 +87,26 @@ const PedidoManager = () => {
   // useEffect para llamar a la API al montar el componente
   useEffect(() => {
     fetchCampaigns();
+  }, []);
+  // Función para obtener campañas desde la API
+  const fetchClientes = async () => {
+    try {
+      const response = await axios.get(`${apiUrl}/clientes`);
+      const data = response.data;
+      if (data.status == "success") {
+        setClientes(data.data); // Guardar campañas en el estado
+      } else {
+        new Error("Error de fetch");
+      }
+    } catch (error) {
+      console.error("Error al obtener clientes:", error);
+      message.error("No se pudieron cargar las clientes");
+    }
+  };
+
+  // useEffect para llamar a la API al montar el componente
+  useEffect(() => {
+    fetchClientes();
   }, []);
 
   // ✅ Leer Excel
@@ -156,7 +194,11 @@ const PedidoManager = () => {
     const response = await fetch(`${apiUrl}/pedidosMasive`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ campaign_name: campaignName, pedidos: asignados }),
+      body: JSON.stringify({
+        campaign_name: campaignName,
+        cliente: selectCliente,
+        pedidos: asignados,
+      }),
     });
     console.log(response);
 
@@ -272,6 +314,19 @@ const PedidoManager = () => {
             value={campaignName}
             onChange={(e) => setCampaignName(e.target.value)}
           />
+          <Select
+            showSearch
+            placeholder="Selecciona un cliente"
+            onChange={handleChange}
+            filterOption={filterOption}
+            style={{ width: 300 }}
+          >
+            {clientes.map((cliente) => (
+              <Option key={cliente.id} value={cliente.id}>
+                {cliente.razonSocial} ({cliente.ruc})
+              </Option>
+            ))}
+          </Select>
           <input type="file" onChange={handleFileUpload} />
           <div className="flex gap-3 justify-between">
             {/* 🟢 Panel Izquierdo - Pedidos sin asignar */}

@@ -22,6 +22,8 @@ const Login = () => {
         navigate("/dashboard"); // Redirigir a la ruta de usuarios
       } else if (role === "repartidor") {
         navigate("/repartidor/pedidos"); // Redirigir al panel con módulos en formato grid
+      } else if (role === "cliente") {
+        navigate("/cliente/pedidos"); // Redirigir al panel con módulos en formato grid
       } else {
         navigate("/"); // Ruta por defecto
       }
