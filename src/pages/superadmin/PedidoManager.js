@@ -28,7 +28,7 @@ const PedidoManager = () => {
     const clienteSeleccionado = clientes.find(
       (cliente) => cliente.id === value
     );
-    setSelectCliente(clienteSeleccionado);
+    setSelectCliente(clienteSeleccionado.id);
   };
 
   const filterOption = (input, option) => {
@@ -110,6 +110,11 @@ const PedidoManager = () => {
   }, []);
 
   // ✅ Leer Excel
+  const [tempPedidos, setTempPedidos] = useState([]);
+  const [tempAsignados, setTempAsignados] = useState([]);
+  const [showModal, setShowModal] = useState(false);
+  const [selectedOrigenId, setSelectedOrigenId] = useState(null);
+
   const handleFileUpload = (event) => {
     const file = event.target.files[0];
     setFileSelect(file);
@@ -124,8 +129,11 @@ const PedidoManager = () => {
       const worksheet = workbook.Sheets[sheetName];
       const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
-      setPedidos(
-        jsonData.map((row, index) => ({
+      const nuevosPedidos = [];
+      const nuevosAsignados = [];
+
+      jsonData.forEach((row, index) => {
+        const pedido = {
           id: index + 1,
           id_solicitante: row["ID Solicitante"],
           nombre_solicitante: row["Nombre Solicitante"],
@@ -142,11 +150,49 @@ const PedidoManager = () => {
           num_cajas: row["Número de cajas"],
           status: "registrado",
           sede_id: null,
-        }))
-      );
+        };
+
+        const sede = sedes.find(
+          (s) =>
+            s.department === pedido.departamento &&
+            s.province === pedido.provincia &&
+            s.district === pedido.distrito
+        );
+
+        if (sede) {
+          nuevosAsignados.push({
+            ...pedido,
+            destino_id: sede.id,
+          });
+        } else {
+          nuevosPedidos.push(pedido);
+        }
+      });
+
+      setTempPedidos(nuevosPedidos);
+      setTempAsignados(nuevosAsignados);
+      setShowModal(true); // mostrar modal para seleccionar origen
     };
 
     reader.readAsArrayBuffer(file);
+  };
+
+  // Cuando confirma la selección de origen
+  const handleConfirmOrigen = () => {
+    if (!selectedOrigenId) {
+      alert("Por favor selecciona un origen.");
+      return;
+    }
+
+    const asignadosConOrigen = tempAsignados.map((asignado) => ({
+      ...asignado,
+      origen_id: selectedOrigenId,
+    }));
+
+    setPedidos(tempPedidos);
+    setAsignados(asignadosConOrigen);
+    setShowModal(false);
+    setSelectedOrigenId(null);
   };
 
   // ✅ Asignar pedidos a una sede
@@ -249,6 +295,50 @@ const PedidoManager = () => {
         rowKey="id"
         pagination={{ pageSize: 10 }}
       />
+
+      <Modal
+        open={showModal}
+        onCancel={() => setShowModal(false)}
+        footer={null}
+      >
+        <div className="modal">
+          <h2>Algunos registros tienen sede asignada. Selecciona un origen:</h2>
+          <Select
+            showSearch
+            filterOption={(input, option) =>
+              option?.label?.toLowerCase().includes(input.toLowerCase())
+            }
+            optionFilterProp="label"
+            onChange={(value) => setSelectedOrigenId(value)} // Ahora devuelve el ID
+            placeholder="Selecciona una sede"
+            style={{ width: "100%" }}
+          >
+            {sedes.map((sede) => (
+              <Option
+                key={sede.id}
+                value={sede.id} // 👈 Aquí ahora se usa el ID como valor
+                label={`${sede.nameReferential} - ${sede.department} ${sede.province} ${sede.district}`}
+              >
+                {sede.nameReferential} - {sede.department} {sede.province}{" "}
+                {sede.district}
+              </Option>
+            ))}
+          </Select>
+
+          <button
+            className="px-3 py-2 rounded bg-primary text-white"
+            onClick={handleConfirmOrigen}
+          >
+            Confirmar
+          </button>
+          <button
+            className="px-3 py-2 rounded bg-gray-200 text-gray-500"
+            onClick={() => setShowModal(false)}
+          >
+            Cancelar
+          </button>
+        </div>
+      </Modal>
       <Modal
         open={modalVisibleSede}
         onCancel={() => setModalVisibleSede(false)}
