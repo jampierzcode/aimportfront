@@ -447,6 +447,45 @@ const CampaignDetails = () => {
 
   const [isOpenMultimedia, setIsOpenMultimedia] = useState(false);
   const [multimedia, setMultimedia] = useState([]);
+
+  const sendPedidoEntregar = async (id) => {
+    try {
+      const response = await axios.post(
+        `${apiUrl}/pedidoEntregar`,
+        { pedido_id: id },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${auth.token}`,
+          },
+        }
+      );
+      console.log(response);
+      const data = response.data;
+      if (data.status === "success") {
+        await fetchCampaignData();
+      } else {
+        new Error("error de compilacion");
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  };
+  const handleEntregar = async (id) => {
+    confirm({
+      title: "Entregar pedido",
+      icon: <ExclamationCircleOutlined />,
+      content: "Esta seguro de entregar este pedido?",
+      okText: "Sí",
+      cancelText: "No",
+      async onOk() {
+        // 👇 Aquí va tu lógica de subida de pedidos cargados
+        console.log("Subiendo pedidos cargados...");
+        await sendPedidoEntregar(id);
+      },
+    });
+  };
+
   const handleVerFotos = (multimedia, id) => {
     setPedidoId(id);
     setIsOpenMultimedia(true);
@@ -463,12 +502,23 @@ const CampaignDetails = () => {
       key: "idSolicitante",
       render: (_, record) => {
         return (
-          <button
-            onClick={() => handleVerFotos(record.multimedia, record.id)}
-            className="px-3 py-2 rounded text-white bg-gray-700"
-          >
-            Ver fotos: {record?.multimedia?.length}
-          </button>
+          <>
+            <button
+              onClick={() => handleVerFotos(record.multimedia, record.id)}
+              className="px-3 py-2 rounded text-white bg-gray-700"
+            >
+              Ver fotos: {record?.multimedia?.length}
+            </button>
+            {record.status === "en reparto" ? (
+              <button
+                onClick={() => handleEntregar(record.id)}
+                className="px-3 py-2 rounded text-white bg-primary"
+              >
+                Entregar
+              </button>
+            ) : null}
+            {}
+          </>
         );
       },
     },
