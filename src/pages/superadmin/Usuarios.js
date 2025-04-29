@@ -1,4 +1,8 @@
 import React, { useEffect, useState } from "react";
+import { FaFileExcel } from "react-icons/fa";
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
+
 import {
   Button,
   DatePicker,
@@ -97,6 +101,29 @@ const Usuarios = () => {
     }
   }, [editGenerate]);
 
+  const exportToExcel = (data) => {
+    // Mapeamos SOLO los datos necesarios
+    const filteredData = data.map((item) => ({
+      Name: item.name,
+      Email: item.email,
+      Sede: `${item.sede.department}, ${item.sede.province}, ${item.sede.district}`,
+      Rol: `${item.rol.name}`,
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(filteredData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Datos");
+
+    const excelBuffer = XLSX.write(workbook, {
+      bookType: "xlsx",
+      type: "array",
+    });
+    const dataBlob = new Blob([excelBuffer], {
+      type: "application/octet-stream",
+    });
+    saveAs(dataBlob, "bd_usuarios.xlsx");
+  };
+
   const [isModalOpenCreate, setIsModalOpenCreate] = useState(false);
   const createUsuario = async (newUsuario) => {
     return new Promise(async (resolve, reject) => {
@@ -136,14 +163,12 @@ const Usuarios = () => {
       const userData = await createUsuario(newUsuario);
       console.log(userData);
       if (userData.status === "success") {
+        message.success("Se creo correctamente el usuario");
         setUsuarioCreate({
+          ...usuarioCreate,
           name: "",
           email: "",
-          password: generateRandomPassword(10),
-          rol_id: 2,
-          sede_id: 1,
         });
-        setIsModalOpenCreate(false);
         await buscarUsuarios();
         setLoadingCreateUsuarios(false);
       } else {
@@ -200,16 +225,6 @@ const Usuarios = () => {
     },
   ];
 
-  const buscarSedeId = (id) => {
-    console.log(sedes);
-    const sede = sedes.find((b) => b.id === id);
-    console.log(sede);
-    return `${sede.nameReferential} - ${sede.department} ${sede.province} ${sede.district}`;
-  };
-  const buscarRoleId = (id) => {
-    const search = roles.find((b) => b.id === id);
-    return search.name;
-  };
   const buscarUsuarios = async () => {
     try {
       const response = await axios.get(`${apiUrl}/usersSuperadmin`, {
@@ -481,6 +496,13 @@ const Usuarios = () => {
           <div className="subtitle max-w-[30vw] text-xs font-normal text-light-font">
             Lista de tus usuarios
           </div>
+          <button
+            onClick={() => exportToExcel(usuarios)}
+            className="flex items-center gap-3 rounded px-3 py-2 bg-green-600 text-white font-bold"
+          >
+            <FaFileExcel size={20} />
+            Excel
+          </button>
         </div>
         <div className="options bg-gray-50 p-4">
           <div className="page-top-card flex items-center gap-3">
@@ -693,6 +715,7 @@ const Usuarios = () => {
         open={isModalOpenCreate}
         onOk={handleOkCreate}
         onCancel={handleCancelCreate}
+        width={"900px"}
       >
         <div className="relative w-full">
           {loadingCreateUsuarios ? (
@@ -946,7 +969,9 @@ const Usuarios = () => {
                       <div style={{ textAlign: "center" }}>
                         <div>
                           <span className="estado publicado">
-                            {buscarSedeId(usuario.sedeId)}
+                            {usuario.sede.nameReferential}{" "}
+                            {usuario.sede.department} {usuario.sede.province}{" "}
+                            {usuario.sede.district}
                           </span>
                         </div>
                       </div>
@@ -955,7 +980,7 @@ const Usuarios = () => {
                       <div style={{ textAlign: "center" }}>
                         <div>
                           <span className="estado publicado">
-                            {buscarRoleId(usuario.rolId)}
+                            {usuario.rol.name}
                           </span>
                         </div>
                       </div>

@@ -25,6 +25,7 @@ import BarcodeScanner from "../../components/rolSuperAdmin/BarCodeScanner";
 import { useAuth } from "../../components/AuthContext";
 import ImageUploadModal from "../../components/rolRepartidor/ImageUploadModal";
 import EstadisticasModal from "./EstadisticasModal";
+import ModalAsignarPedidos from "../../components/rolSuperAdmin/ModalAsignarPedidos";
 const { confirm } = Modal;
 
 const { Option } = Select;
@@ -39,8 +40,9 @@ const CampaignDetails = () => {
   const apiUrlUpload = process.env.REACT_APP_UP_MULTIMEDIA;
 
   const [pedidoId, setPedidoId] = useState(null);
-
+  const [showAsignar, setShowAsignar] = useState(false);
   const [pedidos, setPedidos] = useState([]);
+  const [repartidores, setRepartidores] = useState([]);
   const [visiblePedidos, setVisiblePedidos] = useState([]);
   const [pedidosRegistrados, setPedidosRegistrados] = useState([]);
 
@@ -125,7 +127,13 @@ const CampaignDetails = () => {
   const [asignados, setAsignados] = useState([]);
   const [selectedRows, setSelectedRows] = useState([]);
   const [fileSelect, setFileSelect] = useState(null);
+
   // ✅ Leer Excel
+
+  const [tempPedidos, setTempPedidos] = useState([]);
+  const [tempAsignados, setTempAsignados] = useState([]);
+  const [showModal, setShowModal] = useState(false);
+  const [selectedOrigenId, setSelectedOrigenId] = useState(null);
   const handleFileUpload = (event) => {
     const file = event.target.files[0];
     setFileSelect(file);
@@ -140,8 +148,11 @@ const CampaignDetails = () => {
       const worksheet = workbook.Sheets[sheetName];
       const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
-      setPedidosExcel(
-        jsonData.map((row, index) => ({
+      const nuevosPedidos = [];
+      const nuevosAsignados = [];
+
+      jsonData.forEach((row, index) => {
+        const pedido = {
           id: index + 1,
           id_solicitante: row["ID Solicitante"],
           nombre_solicitante: row["Nombre Solicitante"],
@@ -158,11 +169,49 @@ const CampaignDetails = () => {
           num_cajas: row["Número de cajas"],
           status: "registrado",
           sede_id: null,
-        }))
-      );
+        };
+
+        const sede = sedes.find(
+          (s) =>
+            s.department === pedido.departamento &&
+            s.province === pedido.provincia &&
+            s.district === pedido.distrito
+        );
+
+        if (sede) {
+          nuevosAsignados.push({
+            ...pedido,
+            destino_id: sede.id,
+          });
+        } else {
+          nuevosPedidos.push(pedido);
+        }
+      });
+
+      setTempPedidos(nuevosPedidos);
+      setTempAsignados(nuevosAsignados);
+      setShowModal(true); // mostrar modal para seleccionar origen
     };
 
     reader.readAsArrayBuffer(file);
+  };
+
+  // Cuando confirma la selección de origen
+  const handleConfirmOrigen = () => {
+    if (!selectedOrigenId) {
+      alert("Por favor selecciona un origen.");
+      return;
+    }
+
+    const asignadosConOrigen = tempAsignados.map((asignado) => ({
+      ...asignado,
+      origen_id: selectedOrigenId,
+    }));
+
+    setPedidosExcel(tempPedidos);
+    setAsignados(asignadosConOrigen);
+    setShowModal(false);
+    setSelectedOrigenId(null);
   };
 
   // ✅ Asignar pedidos a una sede
@@ -232,6 +281,22 @@ const CampaignDetails = () => {
   };
   useEffect(() => {
     buscar_sedes();
+  }, [0]);
+  const buscar_repartidores = async () => {
+    try {
+      const response = await axios.get(`${apiUrl}/users/repartidor`);
+      console.log(response);
+      if (response.data.status === "success") {
+        setRepartidores(response.data.data);
+      } else {
+        console.log(response.data.message);
+      }
+    } catch (error) {
+      console.error("Error al obtener los repartidores:", error);
+    }
+  };
+  useEffect(() => {
+    buscar_repartidores();
   }, [0]);
   // ✅ Subir mas fotos a la API
   const handleUploadMorePhotos = async (files) => {
@@ -416,8 +481,9 @@ const CampaignDetails = () => {
       title: "Estado",
       dataIndex: "status",
       key: "status",
-      render: (status) => {
+      render: (_, record) => {
         let colorClass = "";
+        let status = record.status;
 
         switch (status.toLowerCase()) {
           case "registrado":
@@ -443,11 +509,20 @@ const CampaignDetails = () => {
         }
 
         return (
-          <span
-            className={`px-3 py-1 rounded-full text-sm font-medium ${colorClass}`}
-          >
-            {status}
-          </span>
+          <>
+            <span
+              className={`px-3 py-1 rounded-full text-sm font-medium ${colorClass}`}
+            >
+              {status}
+            </span>
+            {record?.asignacion !== null ? (
+              <span
+                className={`px-3 py-1 rounded-full text-sm font-medium bg-green-500 text-white`}
+              >
+                Asignado
+              </span>
+            ) : null}
+          </>
         );
       },
     },
@@ -608,6 +683,49 @@ const CampaignDetails = () => {
           <FaArrowLeft /> Regresar
         </button>
       </div>
+      <Modal
+        open={showModal}
+        onCancel={() => setShowModal(false)}
+        footer={null}
+      >
+        <div className="modal">
+          <h2>Algunos registros tienen sede asignada. Selecciona un origen:</h2>
+          <Select
+            showSearch
+            filterOption={(input, option) =>
+              option?.label?.toLowerCase().includes(input.toLowerCase())
+            }
+            optionFilterProp="label"
+            onChange={(value) => setSelectedOrigenId(value)} // Ahora devuelve el ID
+            placeholder="Selecciona una sede"
+            style={{ width: "100%" }}
+          >
+            {sedes.map((sede) => (
+              <Option
+                key={sede.id}
+                value={sede.id} // 👈 Aquí ahora se usa el ID como valor
+                label={`${sede.nameReferential} - ${sede.department} ${sede.province} ${sede.district}`}
+              >
+                {sede.nameReferential} - {sede.department} {sede.province}{" "}
+                {sede.district}
+              </Option>
+            ))}
+          </Select>
+
+          <button
+            className="px-3 py-2 rounded bg-primary text-white"
+            onClick={handleConfirmOrigen}
+          >
+            Confirmar
+          </button>
+          <button
+            className="px-3 py-2 rounded bg-gray-200 text-gray-500"
+            onClick={() => setShowModal(false)}
+          >
+            Cancelar
+          </button>
+        </div>
+      </Modal>
       <Modal
         open={modalVisibleSede}
         onCancel={() => setModalVisibleSede(false)}
@@ -860,6 +978,21 @@ const CampaignDetails = () => {
               )}
             </div>
           </div>
+          <div className="w-full">
+            <button
+              onClick={() => setShowAsignar(true)}
+              className="rounded px-3 py-2 bg-primary text-white font-bold"
+            >
+              Asignar Pedidos
+            </button>
+          </div>
+          <ModalAsignarPedidos
+            open={showAsignar}
+            onClose={setShowAsignar}
+            pedidos={pedidos}
+            repartidores={repartidores}
+            fetchCampaignData={fetchCampaignData}
+          />
           <Table
             className="mt-8"
             dataSource={visiblePedidos}
