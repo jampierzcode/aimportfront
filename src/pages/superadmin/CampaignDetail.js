@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
 import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import {
@@ -15,17 +16,26 @@ import {
   Checkbox,
 } from "antd";
 import { ExclamationCircleOutlined } from "@ant-design/icons";
-import { FaArrowLeft, FaFileExcel } from "react-icons/fa";
+import {
+  FaArrowLeft,
+  FaFileExcel,
+  FaResearchgate,
+  FaUsers,
+} from "react-icons/fa";
 import {
   AiOutlineBarcode,
   AiOutlineDoubleRight,
+  AiOutlineDownload,
   AiOutlineSearch,
+  AiOutlineUpload,
 } from "react-icons/ai";
 import BarcodeScanner from "../../components/rolSuperAdmin/BarCodeScanner";
 import { useAuth } from "../../components/AuthContext";
 import ImageUploadModal from "../../components/rolRepartidor/ImageUploadModal";
 import EstadisticasModal from "./EstadisticasModal";
 import ModalAsignarPedidos from "../../components/rolSuperAdmin/ModalAsignarPedidos";
+import { BiBarcode } from "react-icons/bi";
+import { FiRefreshCw } from "react-icons/fi";
 const { confirm } = Modal;
 
 const { Option } = Select;
@@ -350,10 +360,14 @@ const CampaignDetails = () => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const [searchField, setSearchField] = useState("idSolicitante");
+  const [departamento, setDepartamento] = useState("");
+  const [provincia, setProvincia] = useState("");
+  const [distrito, setDistrito] = useState("");
 
   const applyFilters = () => {
     let filtered = pedidos;
 
+    // Filtro por campo textual (ID, nombre, estado)
     if (searchTerm.trim() !== "") {
       if (
         searchField === "idSolicitante" ||
@@ -366,8 +380,7 @@ const CampaignDetails = () => {
         }
 
         const searchRegex = new RegExp(searchTerm, "i");
-
-        filtered = pedidos.filter((pedido) => {
+        filtered = filtered.filter((pedido) => {
           const value = pedido[searchField];
           return (
             value !== null &&
@@ -378,7 +391,7 @@ const CampaignDetails = () => {
       }
 
       if (searchField === "status") {
-        filtered = pedidos.filter((pedido) => {
+        filtered = filtered.filter((pedido) => {
           return (
             pedido.status &&
             pedido.status.toLowerCase() === searchTerm.toLowerCase()
@@ -387,13 +400,61 @@ const CampaignDetails = () => {
       }
     }
 
+    // Filtro por departamento
+    if (departamento) {
+      filtered = filtered.filter(
+        (pedido) => pedido.departamento === departamento
+      );
+    }
+
+    // Filtro por provincia
+    if (provincia) {
+      filtered = filtered.filter((pedido) => pedido.provincia === provincia);
+    }
+
+    // Filtro por distrito
+    if (distrito) {
+      filtered = filtered.filter((pedido) => pedido.distrito === distrito);
+    }
+
     setVisiblePedidos(filtered);
+  };
+  const handleResetFilters = () => {
+    setSearchTerm("");
+    setDepartamento("");
+    setProvincia("");
+    setDistrito("");
+    setSearchField("idSolicitante");
   };
 
   // useEffect para manejar el filtrado y paginación
   useEffect(() => {
-    applyFilters(); // Aplicar filtro inicialmente
-  }, [searchTerm, searchField]);
+    applyFilters(); // Aplicar filtros cuando cambian filtros de texto o ubicación
+  }, [searchTerm, searchField, departamento, provincia, distrito]);
+
+  const departamentosUnicos = useMemo(() => {
+    const set = new Set();
+    visiblePedidos.forEach((p) => set.add(p.departamento));
+    return Array.from(set);
+  }, [visiblePedidos]);
+
+  const provinciasUnicas = useMemo(() => {
+    const set = new Set();
+    visiblePedidos.forEach((p) => {
+      if (p.departamento === departamento) set.add(p.provincia);
+    });
+    return Array.from(set);
+  }, [visiblePedidos, departamento]);
+
+  const distritosUnicos = useMemo(() => {
+    const set = new Set();
+    visiblePedidos.forEach((p) => {
+      if (p.departamento === departamento && p.provincia === provincia) {
+        set.add(p.distrito);
+      }
+    });
+    return Array.from(set);
+  }, [visiblePedidos, departamento, provincia]);
 
   useEffect(() => {
     if (pedidoIdParaActualizarMultimedia && pedidos.length > 0) {
@@ -577,9 +638,23 @@ const CampaignDetails = () => {
       },
     },
     {
+      title: "Nombre Solicitante",
+      dataIndex: "nombreSolicitante",
+      key: "nombreSolicitante",
+    },
+    {
       title: "Dirección",
       dataIndex: "direccion",
-      key: "direccion",
+      render: (_, record) => {
+        return (
+          <>
+            <span>{record.direccion}</span>
+            <h1>
+              {record.departamento}-{record.provincia}-{record.distrito}
+            </h1>
+          </>
+        );
+      },
     },
     {
       title: "Sede Origen",
@@ -671,24 +746,82 @@ const CampaignDetails = () => {
       message.error("Has recogido más productos de los que hay en la campaña.");
     }
   };
+  const exportToExcelReport = (pedidos) => {
+    const data = pedidos.map((pedido) => {
+      const entrega =
+        pedido.status === "entregado"
+          ? pedido.status_pedido.find((sp) => sp.status === "entregado")
+          : null;
+
+      return {
+        "Nombre del Solicitante": pedido.nombreSolicitante,
+        "ID del Solicitante": pedido.idSolicitante,
+        Estado: pedido.status,
+        Dirección: pedido.direccion,
+        "Origen - Departamento": pedido.origen?.department || "",
+        "Origen - Provincia": pedido.origen?.province || "",
+        "Origen - Distrito": pedido.origen?.district || "",
+        "Destino - Departamento": pedido.destino?.department || "",
+        "Destino - Provincia": pedido.destino?.province || "",
+        "Destino - Distrito": pedido.destino?.district || "",
+        ...(entrega && {
+          "Fecha de Entrega": new Date(entrega.createdAt).toLocaleString(),
+        }),
+      };
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(data);
+
+    // Autoajustar el ancho de columnas
+    const columnWidths = Object.keys(data[0]).map((key) => ({
+      wch:
+        Math.max(
+          key.length,
+          ...data.map((row) => (row[key] ? row[key].toString().length : 0))
+        ) + 2, // +2 para dejar algo de margen
+    }));
+    worksheet["!cols"] = columnWidths;
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Pedidos");
+
+    const excelBuffer = XLSX.write(workbook, {
+      bookType: "xlsx",
+      type: "array",
+    });
+    const blob = new Blob([excelBuffer], { type: "application/octet-stream" });
+    saveAs(blob, "pedidos.xlsx");
+  };
 
   return (
-    <div className="px-6 py-12">
-      <div className="flex justify-between gap-3">
-        <h2 className="text-2xl">
-          <b>Campaña: {campaign?.name}</b>
-        </h2>
-        <div
-          className="max-w-max px-3 py-2 bg-primary text-white font-bold text-sm flex gap-3 items-center cursor-pointer"
+    <div>
+      <div className="flex gap-3 mb-4">
+        <EstadisticasModal pedidos={pedidos} />
+        <button
+          onClick={() => exportToExcelReport(pedidos)}
+          className="bg-blue-500 text-white px-4 py-2 rounded flex gap-3 items-center"
+        >
+          <AiOutlineDownload />
+          Exportar
+        </button>
+        <button
+          className="rounded px-3 py-2 bg-primary text-white text-sm flex gap-3 items-center"
           onClick={() => setModalVisible(true)}
         >
-          <FaFileExcel /> Subir Masivamente
-        </div>
+          <AiOutlineUpload /> Importar
+        </button>
+        <button
+          onClick={() => setShowAsignar(true)}
+          className="rounded flex items-center gap-3 px-3 py-2 bg-primary text-white"
+        >
+          <FaUsers />
+          Asignar Pedidos
+        </button>
         <button
           onClick={() => navigate(`/generator-codigos/${id}`)}
-          className="px-3 py-2 flex items-center gap-3 bg-black text-white text-sm"
+          className="rounded px-3 py-2 flex items-center gap-3 bg-black text-white text-sm"
         >
-          <handleGenerateCodigos />
+          <BiBarcode />
           Generar Codigos
         </button>
         {pedidosRegistrados.length > 0 ? (
@@ -700,6 +833,12 @@ const CampaignDetails = () => {
             Leer Pedidos
           </button>
         ) : null}
+      </div>
+      <div className="flex justify-between gap-3">
+        <h2 className="text-2xl">
+          <b>Campaña: {campaign?.name}</b>
+          <h3 className="text-xs">Puedes ver todos tus pedidos aquí</h3>
+        </h2>
 
         <Modal
           title="Lectura de Pedidos"
@@ -885,7 +1024,7 @@ const CampaignDetails = () => {
           <Button onClick={subirPedidos}>Subir Data</Button>
         </div>
       </Modal>
-      <EstadisticasModal pedidos={pedidos} />
+
       <ImageUploadModal
         isOpen={modalVisibleMorePhotos}
         onClose={() => setModalVisibleMorePhotos(false)}
@@ -982,7 +1121,58 @@ const CampaignDetails = () => {
         <Spin size="large" />
       ) : (
         <div>
-          <h3 className="text-xs">Puedes ver todos tus pedidos aquí</h3>
+          <div className="flex flex-col md:flex-row gap-4 mb-4">
+            <Select
+              placeholder="Selecciona un departamento"
+              value={departamento || undefined}
+              onChange={(value) => {
+                setDepartamento(value);
+                setProvincia(""); // reset al cambiar
+                setDistrito(""); // reset al cambiar
+              }}
+              className="w-full max-w-xs"
+              allowClear
+            >
+              {departamentosUnicos.map((dep) => (
+                <Option key={dep} value={dep}>
+                  {dep}
+                </Option>
+              ))}
+            </Select>
+
+            <Select
+              placeholder="Selecciona una provincia"
+              value={provincia || undefined}
+              onChange={(value) => {
+                setProvincia(value);
+                setDistrito(""); // reset al cambiar
+              }}
+              className="w-full max-w-xs"
+              disabled={!departamento}
+              allowClear
+            >
+              {provinciasUnicas.map((prov) => (
+                <Option key={prov} value={prov}>
+                  {prov}
+                </Option>
+              ))}
+            </Select>
+
+            <Select
+              placeholder="Selecciona un distrito"
+              value={distrito || undefined}
+              onChange={(value) => setDistrito(value)}
+              className="w-full max-w-xs"
+              disabled={!provincia}
+              allowClear
+            >
+              {distritosUnicos.map((dist) => (
+                <Option key={dist} value={dist}>
+                  {dist}
+                </Option>
+              ))}
+            </Select>
+          </div>
           <div className="flex flex-col md:flex-row gap-4">
             {/* Selector del tipo de búsqueda */}
             <select
@@ -1027,15 +1217,15 @@ const CampaignDetails = () => {
                 </div>
               )}
             </div>
-          </div>
-          <div className="w-full">
+
             <button
-              onClick={() => setShowAsignar(true)}
-              className="rounded px-3 py-2 bg-primary text-white font-bold"
+              onClick={() => handleResetFilters()}
+              className="shadow px-3 py-2 rounded bg-white text-gray-800"
             >
-              Asignar Pedidos
+              <FiRefreshCw />
             </button>
           </div>
+
           <ModalAsignarPedidos
             open={showAsignar}
             onClose={setShowAsignar}

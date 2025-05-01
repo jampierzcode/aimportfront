@@ -13,6 +13,7 @@ import {
   BarChart,
   Bar,
 } from "recharts";
+import { BiLineChart } from "react-icons/bi";
 
 const EstadisticasModal = ({ pedidos }) => {
   const [open, setOpen] = useState(false);
@@ -67,9 +68,12 @@ const EstadisticasModal = ({ pedidos }) => {
 
   return (
     <>
-      <Button type="primary" onClick={showModal}>
-        Ver Estadísticas
-      </Button>
+      <button
+        className="bg-blue-500 text-white px-4 py-2 rounded flex gap-3 items-center"
+        onClick={showModal}
+      >
+        <BiLineChart /> Ver Estadísticas
+      </button>
       <Modal
         open={open}
         onCancel={handleCancel}

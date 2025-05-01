@@ -18,7 +18,7 @@
   flex-shrink: 1;
   min-width: 0;
   flex-direction: column;
-  overflow-y: scroll;
+  overflow-y: hidden;
 }
 .app-container-sections {
   flex-grow: 1;

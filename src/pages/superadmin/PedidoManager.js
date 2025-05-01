@@ -274,7 +274,7 @@ const PedidoManager = () => {
   }, [0]);
 
   return (
-    <div className="py-6 px-12">
+    <div>
       <div className="w-full flex gap-3">
         <div
           className="max-w-max px-3 py-2 bg-gray-300 text-gray-900 font-bold text-sm cursor-pointer"
