@@ -94,7 +94,7 @@ const Sidebar = ({ open, setOpen }) => {
             <div className="flex items-center justify-center bg-dark-purple rounded">
               <img
                 className="h-[100px] mx-auto object-contain block"
-                src="logo.jpg"
+                src="../logo.jpg"
                 alt=""
               />
             </div>

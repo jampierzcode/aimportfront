@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import * as XLSX from "xlsx";
 import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
@@ -17,6 +17,7 @@ import {
 import { AiOutlineSearch } from "react-icons/ai";
 import { useAuth } from "../../components/AuthContext";
 import ImageUploadModal from "../../components/rolRepartidor/ImageUploadModal";
+import { FiRefreshCw } from "react-icons/fi";
 const { confirm } = Modal;
 
 const { Option } = Select;
@@ -219,9 +220,14 @@ const PedidoRepartidor = () => {
   const navigate = useNavigate();
   const [searchField, setSearchField] = useState("idSolicitante");
 
+  const [departamento, setDepartamento] = useState("");
+  const [provincia, setProvincia] = useState("");
+  const [distrito, setDistrito] = useState("");
+
   const applyFilters = () => {
     let filtered = pedidos;
 
+    // Filtro por campo textual (ID, nombre, estado)
     if (searchTerm.trim() !== "") {
       if (
         searchField === "idSolicitante" ||
@@ -234,8 +240,7 @@ const PedidoRepartidor = () => {
         }
 
         const searchRegex = new RegExp(searchTerm, "i");
-
-        filtered = pedidos.filter((pedido) => {
+        filtered = filtered.filter((pedido) => {
           const value = pedido[searchField];
           return (
             value !== null &&
@@ -246,7 +251,7 @@ const PedidoRepartidor = () => {
       }
 
       if (searchField === "status") {
-        filtered = pedidos.filter((pedido) => {
+        filtered = filtered.filter((pedido) => {
           return (
             pedido.status &&
             pedido.status.toLowerCase() === searchTerm.toLowerCase()
@@ -255,12 +260,61 @@ const PedidoRepartidor = () => {
       }
     }
 
+    // Filtro por departamento
+    if (departamento) {
+      filtered = filtered.filter(
+        (pedido) => pedido.departamento === departamento
+      );
+    }
+
+    // Filtro por provincia
+    if (provincia) {
+      filtered = filtered.filter((pedido) => pedido.provincia === provincia);
+    }
+
+    // Filtro por distrito
+    if (distrito) {
+      filtered = filtered.filter((pedido) => pedido.distrito === distrito);
+    }
+
     setVisiblePedidos(filtered);
   };
+  const handleResetFilters = () => {
+    setSearchTerm("");
+    setDepartamento("");
+    setProvincia("");
+    setDistrito("");
+    setSearchField("idSolicitante");
+  };
 
+  // useEffect para manejar el filtrado y paginación
   useEffect(() => {
-    applyFilters();
-  }, [searchTerm, searchField]);
+    applyFilters(); // Aplicar filtros cuando cambian filtros de texto o ubicación
+  }, [searchTerm, searchField, departamento, provincia, distrito]);
+
+  const departamentosUnicos = useMemo(() => {
+    const set = new Set();
+    visiblePedidos.forEach((p) => set.add(p.departamento));
+    return Array.from(set);
+  }, [visiblePedidos]);
+
+  const provinciasUnicas = useMemo(() => {
+    const set = new Set();
+    visiblePedidos.forEach((p) => {
+      if (p.departamento === departamento) set.add(p.provincia);
+    });
+    return Array.from(set);
+  }, [visiblePedidos, departamento]);
+
+  const distritosUnicos = useMemo(() => {
+    const set = new Set();
+    visiblePedidos.forEach((p) => {
+      if (p.departamento === departamento && p.provincia === provincia) {
+        set.add(p.distrito);
+      }
+    });
+    return Array.from(set);
+  }, [visiblePedidos, departamento, provincia]);
 
   useEffect(() => {
     if (pedidoIdParaActualizarMultimedia && pedidos.length > 0) {
@@ -400,7 +454,16 @@ const PedidoRepartidor = () => {
     {
       title: "Dirección",
       dataIndex: "direccion",
-      key: "direccion",
+      render: (_, record) => {
+        return (
+          <>
+            <span>{record.direccion}</span>
+            <h1>
+              {record.departamento}-{record.provincia}-{record.distrito}
+            </h1>
+          </>
+        );
+      },
     },
     {
       title: "Sede Origen",
@@ -427,7 +490,7 @@ const PedidoRepartidor = () => {
   ];
 
   return (
-    <div className="px-6 py-12">
+    <div>
       <div className="flex justify-between gap-3">
         <h2 className="text-2xl">
           <b>Mis pedidos</b>
@@ -555,6 +618,58 @@ const PedidoRepartidor = () => {
       ) : (
         <div>
           <h3 className="text-xs mb-6">Puedes ver todos tus pedidos aquí</h3>
+          <div className="flex flex-col md:flex-row gap-4 mb-4">
+            <Select
+              placeholder="Selecciona un departamento"
+              value={departamento || undefined}
+              onChange={(value) => {
+                setDepartamento(value);
+                setProvincia(""); // reset al cambiar
+                setDistrito(""); // reset al cambiar
+              }}
+              className="w-full max-w-xs"
+              allowClear
+            >
+              {departamentosUnicos.map((dep) => (
+                <Option key={dep} value={dep}>
+                  {dep}
+                </Option>
+              ))}
+            </Select>
+
+            <Select
+              placeholder="Selecciona una provincia"
+              value={provincia || undefined}
+              onChange={(value) => {
+                setProvincia(value);
+                setDistrito(""); // reset al cambiar
+              }}
+              className="w-full max-w-xs"
+              disabled={!departamento}
+              allowClear
+            >
+              {provinciasUnicas.map((prov) => (
+                <Option key={prov} value={prov}>
+                  {prov}
+                </Option>
+              ))}
+            </Select>
+
+            <Select
+              placeholder="Selecciona un distrito"
+              value={distrito || undefined}
+              onChange={(value) => setDistrito(value)}
+              className="w-full max-w-xs"
+              disabled={!provincia}
+              allowClear
+            >
+              {distritosUnicos.map((dist) => (
+                <Option key={dist} value={dist}>
+                  {dist}
+                </Option>
+              ))}
+            </Select>
+          </div>
           <div className="flex flex-col md:flex-row gap-4">
             {/* Selector del tipo de búsqueda */}
             <select
@@ -599,7 +714,15 @@ const PedidoRepartidor = () => {
                 </div>
               )}
             </div>
+
+            <button
+              onClick={() => handleResetFilters()}
+              className="shadow px-3 py-2 rounded bg-white text-gray-800"
+            >
+              <FiRefreshCw />
+            </button>
           </div>
+
           <Table
             className="mt-8"
             dataSource={visiblePedidos}

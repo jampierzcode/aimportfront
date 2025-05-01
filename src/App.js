@@ -32,6 +32,7 @@ import PedidoRepartidor from "./pages/repartidor/PedidoRepartidor";
 import SqlGenerator from "./pages/superadmin/SqlGenerator";
 import ExcelUpload from "./pages/superadmin/ExcelUpload";
 import PedidosCliente from "./pages/cliente/Pedidos";
+import CampaignDetailsCliente from "./pages/cliente/CampaignDetail";
 
 function App() {
   return (
@@ -95,6 +96,16 @@ function App() {
               <PrivateRoute roles={["cliente"]}>
                 <LayoutCliente>
                   <PedidosCliente />
+                </LayoutCliente>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/clientecampaigns/:id"
+            element={
+              <PrivateRoute roles={["cliente"]}>
+                <LayoutCliente>
+                  <CampaignDetailsCliente />
                 </LayoutCliente>
               </PrivateRoute>
             }

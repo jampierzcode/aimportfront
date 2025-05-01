@@ -32,14 +32,15 @@ import {
 import BarcodeScanner from "../../components/rolSuperAdmin/BarCodeScanner";
 import { useAuth } from "../../components/AuthContext";
 import ImageUploadModal from "../../components/rolRepartidor/ImageUploadModal";
-import EstadisticasModal from "./EstadisticasModal";
+
 import ModalAsignarPedidos from "../../components/rolSuperAdmin/ModalAsignarPedidos";
 import { BiBarcode } from "react-icons/bi";
 import { FiRefreshCw } from "react-icons/fi";
+import EstadisticasModal from "../superadmin/EstadisticasModal";
 const { confirm } = Modal;
 
 const { Option } = Select;
-const CampaignDetails = () => {
+const CampaignDetailsCliente = () => {
   const { auth } = useAuth();
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -50,13 +51,9 @@ const CampaignDetails = () => {
   const apiUrlUpload = process.env.REACT_APP_UP_MULTIMEDIA;
 
   const [pedidoId, setPedidoId] = useState(null);
-  const [showAsignar, setShowAsignar] = useState(false);
   const [pedidos, setPedidos] = useState([]);
-  const [repartidores, setRepartidores] = useState([]);
   const [visiblePedidos, setVisiblePedidos] = useState([]);
   const [pedidosRegistrados, setPedidosRegistrados] = useState([]);
-
-  const [pedidosCargados, setPedidosCargados] = useState([]);
 
   // pedidos que se suben al excel useState
   const [modalVisible, setModalVisible] = useState(false);
@@ -292,70 +289,6 @@ const CampaignDetails = () => {
   useEffect(() => {
     buscar_sedes();
   }, [0]);
-  const buscar_repartidores = async () => {
-    try {
-      const response = await axios.get(`${apiUrl}/users/repartidor`);
-      console.log(response);
-      if (response.data.status === "success") {
-        setRepartidores(response.data.data);
-      } else {
-        console.log(response.data.message);
-      }
-    } catch (error) {
-      console.error("Error al obtener los repartidores:", error);
-    }
-  };
-  useEffect(() => {
-    buscar_repartidores();
-  }, [0]);
-  // ✅ Subir mas fotos a la API
-  const handleUploadMorePhotos = async (files) => {
-    const formData = new FormData();
-    const searchPedido = pedidos.find((p) => p.id === pedidoId);
-
-    formData.append("folder", `${searchPedido.idSolicitante}`);
-
-    files.forEach((file) => {
-      formData.append("files[]", file);
-    });
-
-    try {
-      const response = await axios.post(`${apiUrlUpload}/index.php`, formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
-      const data = response.data;
-      console.log(data);
-      if (data.success) {
-        console.log(data.files);
-        const responseEnviiosMultimedia = await axios.post(
-          `${apiUrl}/pedidosMultimedia`,
-          { files: data.files, pedido_id: pedidoId },
-          {
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${auth.token}`,
-            },
-          }
-        );
-        console.log(response);
-        const dataMultimedia = responseEnviiosMultimedia.data;
-        if (dataMultimedia.status === "success") {
-          message.success("Se subieron las imagenes correctamente");
-          await fetchCampaignData();
-          setPedidoIdParaActualizarMultimedia(pedidoId);
-
-          setModalVisibleMorePhotos(false);
-        } else {
-          new Error("error de compilacion");
-        }
-      }
-    } catch (error) {
-      console.error("Error al subir imágenes:", error);
-      message.error("Ocurrió un error al subir las imágenes.");
-    }
-  };
 
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
@@ -473,10 +406,6 @@ const CampaignDetails = () => {
     setIsModalOpen(true);
   };
 
-  const handleGenerateCodigos = () => {
-    navigate(`/generar-codigos/${id}`);
-  };
-
   const fetchCampaignData = async () => {
     try {
       const response = await axios.get(`${apiUrl}/campaigns/${id}`);
@@ -502,50 +431,8 @@ const CampaignDetails = () => {
     fetchCampaignData();
   }, [id]);
 
-  const handleMorePhotos = () => {
-    setModalVisibleMorePhotos(true);
-  };
-
   const [isOpenMultimedia, setIsOpenMultimedia] = useState(false);
   const [multimedia, setMultimedia] = useState([]);
-
-  const sendPedidoEntregar = async (id) => {
-    try {
-      const response = await axios.post(
-        `${apiUrl}/pedidoEntregar`,
-        { pedido_id: id },
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${auth.token}`,
-          },
-        }
-      );
-      console.log(response);
-      const data = response.data;
-      if (data.status === "success") {
-        await fetchCampaignData();
-      } else {
-        new Error("error de compilacion");
-      }
-    } catch (error) {
-      console.log(error);
-    }
-  };
-  const handleEntregar = async (id) => {
-    confirm({
-      title: "Entregar pedido",
-      icon: <ExclamationCircleOutlined />,
-      content: "Esta seguro de entregar este pedido?",
-      okText: "Sí",
-      cancelText: "No",
-      async onOk() {
-        // 👇 Aquí va tu lógica de subida de pedidos cargados
-        console.log("Subiendo pedidos cargados...");
-        await sendPedidoEntregar(id);
-      },
-    });
-  };
 
   const handleVerFotos = (multimedia, id) => {
     setPedidoId(id);
@@ -570,15 +457,6 @@ const CampaignDetails = () => {
             >
               Ver fotos: {record?.multimedia?.length}
             </button>
-            {record.status === "en reparto" ? (
-              <button
-                onClick={() => handleEntregar(record.id)}
-                className="px-3 py-2 rounded text-white bg-primary"
-              >
-                Entregar
-              </button>
-            ) : null}
-            {}
           </>
         );
       },
@@ -626,13 +504,6 @@ const CampaignDetails = () => {
             >
               {status}
             </span>
-            {record?.asignacion !== null ? (
-              <span
-                className={`px-3 py-1 rounded-full text-sm font-medium bg-green-500 text-white`}
-              >
-                Asignado
-              </span>
-            ) : null}
           </>
         );
       },
@@ -680,72 +551,6 @@ const CampaignDetails = () => {
     },
   ];
 
-  const sendDataCargados = async () => {
-    try {
-      const response = await axios.post(
-        `${apiUrl}/senDataPedidosCargadaMasive`,
-        { pedidos: pedidosCargados },
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${auth.token}`,
-          },
-        }
-      );
-      console.log(response);
-      const data = response.data;
-      if (data.status === "success") {
-        setPedidosCargados([]);
-        await fetchCampaignData();
-      } else {
-        new Error("error de compilacion");
-      }
-    } catch (error) {
-      console.log(error);
-    }
-  };
-  const eliminarProductosNoEncontrados = () => {
-    const codigosRegistrados = pedidosRegistrados.map((p) => p.idSolicitante);
-    const nuevosPedidosCargados = pedidosCargados.filter((codigo) =>
-      codigosRegistrados.includes(codigo)
-    );
-    setPedidosCargados(nuevosPedidosCargados);
-  };
-  const recogerPedidos = async () => {
-    const codigosPedidos = pedidosRegistrados.map((p) => p.idSolicitante);
-    const todosExisten = pedidosCargados.every((codigo) =>
-      codigosPedidos.includes(codigo)
-    );
-
-    if (!todosExisten) {
-      message.error(
-        "Hay códigos recogidos que no existen en la lista de pedidos."
-      );
-      return;
-    }
-
-    if (pedidosCargados.length < pedidosRegistrados.length) {
-      confirm({
-        title: "Cantidad de productos menor",
-        icon: <ExclamationCircleOutlined />,
-        content:
-          "La cantidad de productos recogidos es menor a los cargados en esta campaña, ¿estás seguro de recoger estos productos?",
-        okText: "Sí",
-        cancelText: "No",
-        async onOk() {
-          // 👇 Aquí va tu lógica de subida de pedidos cargados
-          console.log("Subiendo pedidos cargados...");
-          await sendDataCargados();
-        },
-      });
-    } else if (pedidosCargados.length === pedidosRegistrados.length) {
-      // 👇 Aquí va tu lógica de subida de pedidos cargados directamente sin confirmación
-      console.log("Subiendo todos los pedidos cargados directamente...");
-      await sendDataCargados();
-    } else {
-      message.error("Has recogido más productos de los que hay en la campaña.");
-    }
-  };
   const exportToExcelReport = (pedidos) => {
     const data = pedidos.map((pedido) => {
       const entrega =
@@ -804,35 +609,6 @@ const CampaignDetails = () => {
           <AiOutlineDownload />
           Exportar
         </button>
-        <button
-          className="rounded px-3 py-2 bg-primary text-white text-sm flex gap-3 items-center"
-          onClick={() => setModalVisible(true)}
-        >
-          <AiOutlineUpload /> Importar
-        </button>
-        <button
-          onClick={() => setShowAsignar(true)}
-          className="rounded flex items-center gap-3 px-3 py-2 bg-primary text-white"
-        >
-          <FaUsers />
-          Asignar Pedidos
-        </button>
-        <button
-          onClick={() => navigate(`/generator-codigos/${id}`)}
-          className="rounded px-3 py-2 flex items-center gap-3 bg-black text-white text-sm"
-        >
-          <BiBarcode />
-          Generar Codigos
-        </button>
-        {pedidosRegistrados.length > 0 ? (
-          <button
-            onClick={() => handleReadPedidos()}
-            className="px-3 py-2 flex items-center gap-3 bg-blue-600 text-white text-sm"
-          >
-            <AiOutlineBarcode />
-            Leer Pedidos
-          </button>
-        ) : null}
       </div>
       <div className="flex justify-between gap-3">
         <h2 className="text-2xl">
@@ -840,33 +616,8 @@ const CampaignDetails = () => {
           <h3 className="text-xs">Puedes ver todos tus pedidos aquí</h3>
         </h2>
 
-        <Modal
-          title="Lectura de Pedidos"
-          open={isModalOpen}
-          onCancel={() => setIsModalOpen(false)}
-          footer={null}
-        >
-          <button
-            onClick={() => eliminarProductosNoEncontrados()}
-            className="px-3 py-2 flex items-center gap-3 bg-red-600 text-white text-sm"
-          >
-            Eliminar pedidos no registrados
-          </button>
-          <BarcodeScanner
-            isModal={isModalOpen}
-            pedidos={pedidosRegistrados}
-            pedidosCargados={pedidosCargados}
-            setPedidosCargados={setPedidosCargados}
-          />
-          <button
-            onClick={() => recogerPedidos()}
-            className="px-3 py-2 flex items-center gap-3 bg-primary text-white text-sm"
-          >
-            Recoger Pedidos
-          </button>
-        </Modal>
         <button
-          onClick={() => navigate("/pedidos")}
+          onClick={() => navigate("/cliente/pedidos")}
           className="px-3 py-2 flex items-center gap-3 bg-primary text-white text-sm"
         >
           <FaArrowLeft /> Regresar
@@ -1025,62 +776,6 @@ const CampaignDetails = () => {
         </div>
       </Modal>
 
-      <ImageUploadModal
-        isOpen={modalVisibleMorePhotos}
-        onClose={() => setModalVisibleMorePhotos(false)}
-        onUpload={handleUploadMorePhotos}
-      />
-
-      <Modal
-        title="Eliminar Imágenes"
-        open={deleteModalVisible}
-        onCancel={() => {
-          setDeleteModalVisible(false);
-          setSelectedImages([]);
-        }}
-        footer={false}
-        width={800}
-      >
-        <Row gutter={[16, 16]}>
-          {multimedia.map((item) => (
-            <Col key={item.id} span={6}>
-              <div style={{ position: "relative" }}>
-                <Image
-                  src={item.url}
-                  alt="Imagen"
-                  width="100%"
-                  height={150}
-                  style={{ objectFit: "cover", borderRadius: "8px" }}
-                />
-                <Checkbox
-                  checked={selectedImages.some((img) => img.url === item.url)}
-                  onChange={() => toggleImageSelection(item)}
-                  style={{
-                    position: "absolute",
-                    top: 8,
-                    left: 8,
-                    background: "white",
-                    padding: "2px",
-                    borderRadius: "50%",
-                  }}
-                />
-              </div>
-            </Col>
-          ))}
-        </Row>
-
-        <div style={{ marginTop: 24, textAlign: "right" }}>
-          <Button
-            danger
-            type="primary"
-            // icon={<DeleteOutlined />}
-            onClick={handleDeleteSelected}
-            loading={loadingDelete}
-          >
-            Eliminar seleccionadas
-          </Button>
-        </div>
-      </Modal>
       <Modal
         open={isOpenMultimedia}
         onCancel={handleCloseMultimedia}
@@ -1088,20 +783,6 @@ const CampaignDetails = () => {
         footer={false}
       >
         <div className="w-full">
-          <div className="w-full flex gap-3 mb-6">
-            <button
-              onClick={() => handleMorePhotos()}
-              className="px-3 py-2 rounded bg-primary text-white"
-            >
-              Subir imagenes
-            </button>
-            <button
-              onClick={() => setDeleteModalVisible(true)}
-              className="px-3 py-2 rounded bg-red-700 text-white"
-            >
-              Eliminar imagenes
-            </button>
-          </div>
           <div className="flex gap-3 flex-wrap">
             {multimedia.map((m, index) => {
               return (
@@ -1117,6 +798,7 @@ const CampaignDetails = () => {
           </div>
         </div>
       </Modal>
+
       {loading ? (
         <Spin size="large" />
       ) : (
@@ -1224,6 +906,7 @@ const CampaignDetails = () => {
             >
               <FiRefreshCw />
             </button>
+
             <div className="flex gap-4">
               <div className="box px-3 py-2 rounded text-sm font-bold bg-primary text-white">
                 Total pedidos <span>{pedidos.length}</span>
@@ -1244,13 +927,6 @@ const CampaignDetails = () => {
             </div>
           </div>
 
-          <ModalAsignarPedidos
-            open={showAsignar}
-            onClose={setShowAsignar}
-            pedidos={pedidos}
-            repartidores={repartidores}
-            fetchCampaignData={fetchCampaignData}
-          />
           <Table
             className="mt-8"
             dataSource={visiblePedidos}
@@ -1266,4 +942,4 @@ const CampaignDetails = () => {
   );
 };
 
-export default CampaignDetails;
+export default CampaignDetailsCliente;

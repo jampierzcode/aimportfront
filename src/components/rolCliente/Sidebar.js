@@ -64,16 +64,16 @@ const Sidebar = ({ open, setOpen }) => {
           {open ? (
             <div className="flex items-center justify-center py-4 bg-dark-purple rounded">
               <img
-                className="h-[50px] mx-auto object-contain block"
-                src="logo.jpg"
+                className="h-[100px] mx-auto object-contain block"
+                src="../logo.jpg"
                 alt=""
               />
             </div>
           ) : (
             <div className="flex items-center justify-center py-4 bg-dark-purple rounded">
               <img
-                className="h-[50px] mx-auto object-contain block"
-                src="logo.jpg"
+                className="h-[100px] mx-auto object-contain block"
+                src="../logo.jpg"
                 alt=""
               />
             </div>

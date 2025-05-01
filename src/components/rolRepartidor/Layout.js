@@ -7,9 +7,9 @@ const Layout = ({ children }) => {
   return (
     <div className="flex">
       <Sidebar open={open} setOpen={setOpen} />
-      <div className="w-full app-container">
+      <div className="w-full app-container h-[100vh]">
         <TopNavigation open={open} setOpen={setOpen} />
-        {children}
+        <div className="px-6 py-12 h-full overflow-auto">{children}</div>
       </div>
     </div>
   );
