@@ -33,6 +33,7 @@ import SqlGenerator from "./pages/superadmin/SqlGenerator";
 import ExcelUpload from "./pages/superadmin/ExcelUpload";
 import PedidosCliente from "./pages/cliente/Pedidos";
 import CampaignDetailsCliente from "./pages/cliente/CampaignDetail";
+import SedesManager from "./pages/superadmin/SedesManager";
 
 function App() {
   return (
@@ -44,6 +45,16 @@ function App() {
           <Route path="/" element={<Navigate to="/login" replace />} />
 
           {/* RUTAS PARA USUARIO SUPERADMIN */}
+          <Route
+            path="/sedes"
+            element={
+              <PrivateRoute roles={["superadmin"]}>
+                <LayoutSuperadmin>
+                  <SedesManager />
+                </LayoutSuperadmin>
+              </PrivateRoute>
+            }
+          />
           <Route
             path="/pedidos"
             element={
