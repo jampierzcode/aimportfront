@@ -681,10 +681,14 @@ const CampaignDetails = () => {
   ];
 
   const sendDataCargados = async () => {
+    const idsFiltrados = pedidosRegistrados
+      .filter((pedido) => pedidosCargados.includes(pedido.idSolicitante))
+      .map((pedido) => pedido.id);
+
     try {
       const response = await axios.post(
         `${apiUrl}/senDataPedidosCargadaMasive`,
-        { pedidos: pedidosCargados },
+        { pedidos: idsFiltrados },
         {
           headers: {
             "Content-Type": "application/json",
