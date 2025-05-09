@@ -127,7 +127,9 @@ const PedidoManager = () => {
 
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
-      const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+      // Esta opción convierte todo a texto legible, incluyendo fechas
+      const jsonData = XLSX.utils.sheet_to_json(worksheet, { raw: false });
 
       const nuevosPedidos = [];
       const nuevosAsignados = [];
@@ -135,29 +137,32 @@ const PedidoManager = () => {
       jsonData.forEach((row, index) => {
         const pedido = {
           id: index + 1,
-          id_solicitante: row["ID Solicitante"],
-          nombre_solicitante: row["Nombre Solicitante"],
-          departamento: row["Departamento"],
-          provincia: row["Provincia"],
-          distrito: row["Distrito"],
-          direccion: row["Dirección"],
-          referencia: row["Referencia"],
-          celular: row["Celular"],
-          ubigeo: row["Ubigeo"],
-          zona_ventas: row["Zona de ventas"],
-          marca: row["Marca"],
-          mp: row["MP"],
-          num_cajas: row["Número de cajas"],
+          id_solicitante: String(row["ID Solicitante"] || ""),
+          entrega: String(row["Entrega"] || ""),
+          org_ventas: String(row["Org.Ventas"] || ""),
+          fecha_pedido: String(row["Fecha Pedido"] || ""),
+          dni: String(row["DNI"] || ""),
+          bulto: String(row["BULTO"] || ""),
+          empaque: String(row["EMPAQUE"] || ""),
+          auditoria: String(row["AUDITORIA"] || ""),
+          mail_plan: String(row["Mail Plan"] || ""),
+          nombre_solicitante: String(row["Nombre Solicitante"] || ""),
+          departamento: String(row["Departamento"] || ""),
+          provincia: String(row["Provincia"] || ""),
+          distrito: String(row["Distrito"] || ""),
+          direccion: String(row["Dirección"] || ""),
+          referencia: String(row["Referencia"] || ""),
+          celular: String(row["Celular"] || ""),
+          ubigeo: String(row["Ubigeo"] || ""),
+          zona_ventas: String(row["Zona de ventas"] || ""),
+          marca: String(row["Marca"] || ""),
+          mp: String(row["MP"] || ""),
+          num_cajas: String(row["Número de cajas"] || ""),
           status: "registrado",
           sede_id: null,
         };
 
-        const sede = sedes.find(
-          (s) =>
-            s.department === pedido.departamento &&
-            s.province === pedido.provincia &&
-            s.district === pedido.distrito
-        );
+        const sede = sedes.find((s) => s.department === pedido.departamento);
 
         if (sede) {
           nuevosAsignados.push({
@@ -169,6 +174,7 @@ const PedidoManager = () => {
         }
       });
 
+      console.log(nuevosPedidos);
       setTempPedidos(nuevosPedidos);
       setTempAsignados(nuevosAsignados);
       setShowModal(true); // mostrar modal para seleccionar origen
