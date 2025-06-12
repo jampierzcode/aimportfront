@@ -19,11 +19,6 @@ import LayoutCliente from "./components/rolCliente/Layout";
 import Dashboard from "./pages/admin/Dashboard";
 import NotFoundPage from "./pages/NotFoundPage";
 import Identy from "./pages/Identy";
-import Categories from "./pages/admin/Categories";
-import Courses from "./pages/admin/Courses";
-import VideoUploader from "./pages/admin/VideoUploader";
-import Course from "./pages/admin/Course";
-import CourseEditor from "./pages/admin/CourseEdit";
 import PedidoManager from "./pages/superadmin/PedidoManager";
 import CampaignDetails from "./pages/superadmin/CampaignDetail";
 import BarcodeScanner from "./components/rolSuperAdmin/BarCodeScanner";
@@ -132,18 +127,6 @@ function App() {
               </PrivateRoute>
             }
           />
-          <Route
-            path="/categories"
-            element={
-              <PrivateRoute roles={["admin"]}>
-                <Layout>
-                  <Categories />
-                </Layout>
-              </PrivateRoute>
-            }
-          />
-
-          <Route path="/subirvideo" element={<VideoUploader />} />
 
           <Route
             path="/usuarios"

@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import * as XLSX from "xlsx";
 
 const ExcelUpload = () => {
-  const [data, setData] = useState([]);
   const [sql, setSql] = useState("");
 
   const handleFileUpload = (e) => {
@@ -22,7 +21,6 @@ const ExcelUpload = () => {
         distrito: row.distrito,
       }));
 
-      setData(parsedData);
       generateSQL(parsedData);
     };
 

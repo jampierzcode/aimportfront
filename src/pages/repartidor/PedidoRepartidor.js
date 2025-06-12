@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import * as XLSX from "xlsx";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import {
   Table,
@@ -18,24 +17,19 @@ import { AiOutlineSearch } from "react-icons/ai";
 import { useAuth } from "../../components/AuthContext";
 import ImageUploadModal from "../../components/rolRepartidor/ImageUploadModal";
 import { FiRefreshCw } from "react-icons/fi";
-const { confirm } = Modal;
 
 const { Option } = Select;
 const PedidoRepartidor = () => {
   const { auth } = useAuth();
 
   const [searchTerm, setSearchTerm] = useState("");
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const apiUrl = process.env.REACT_APP_API_URL;
 
   const apiUrlUpload = process.env.REACT_APP_UP_MULTIMEDIA;
-  const { id } = useParams(); // Obtener ID de la URL
+
   const [pedidoId, setPedidoId] = useState(null);
   const [pedidos, setPedidos] = useState([]);
   const [visiblePedidos, setVisiblePedidos] = useState([]);
-  const [pedidosRegistrados, setPedidosRegistrados] = useState([]);
-
-  const [pedidosCargados, setPedidosCargados] = useState([]);
 
   // pedidos que se suben al excel useState
   const [modalVisible, setModalVisible] = useState(false);

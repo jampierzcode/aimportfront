@@ -8,7 +8,6 @@ const Generador = () => {
   const { id } = useParams();
   const [campaign, setCampaign] = useState(null);
   const [ids, setIds] = useState([]);
-  const [loading, setLoading] = useState(true);
   const apiUrl = process.env.REACT_APP_API_URL; // Tu API
 
   useEffect(() => {

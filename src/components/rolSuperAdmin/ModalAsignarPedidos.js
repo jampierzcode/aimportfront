@@ -24,6 +24,7 @@ const ModalAsignarPedidos = ({
 
   useEffect(() => {
     filtrarPedidos();
+    // eslint-disable-next-line
   }, [pedidos, filtroDepartamento, filtroProvincia, filtroDistrito]);
 
   const filtrarPedidos = () => {

@@ -16,12 +16,7 @@ import {
   Checkbox,
 } from "antd";
 import { ExclamationCircleOutlined } from "@ant-design/icons";
-import {
-  FaArrowLeft,
-  FaFileExcel,
-  FaResearchgate,
-  FaUsers,
-} from "react-icons/fa";
+import { FaArrowLeft, FaUsers } from "react-icons/fa";
 import {
   AiOutlineBarcode,
   AiOutlineDoubleRight,

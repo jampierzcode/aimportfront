@@ -7,11 +7,6 @@ import { useAuth } from "../AuthContext";
 const TopNavigation = ({ open, setOpen }) => {
   const { auth } = useAuth();
 
-  const transformarTexto = (texto) => {
-    // return texto.trim().toLowerCase().replace(/\s+/g, "-");
-    return texto.trim().toLowerCase().replace(/\s+/g, "-");
-  };
-
   const last_conection = dayjs().format("DD/MM • HH:mm");
   return (
     <>

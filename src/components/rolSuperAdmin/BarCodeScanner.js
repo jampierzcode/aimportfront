@@ -55,6 +55,7 @@ const BarcodeScanner = ({
       window.removeEventListener("keydown", handleKeyDown);
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
+    // eslint-disable-next-line
   }, [isModal, pedidosCargados, setPedidosCargados]);
 
   useEffect(() => {

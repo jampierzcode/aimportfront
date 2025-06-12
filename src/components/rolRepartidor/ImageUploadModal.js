@@ -28,6 +28,7 @@ const ImageUploadModal = ({ isOpen, onClose, onUpload }) => {
     } else {
       setFacingMode("user");
     }
+    // eslint-disable-next-line
   }, []);
 
   const handleFileChange = (e) => {

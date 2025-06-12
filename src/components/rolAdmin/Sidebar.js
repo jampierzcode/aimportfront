@@ -6,10 +6,9 @@ import { BsArrowLeftShort, BsArrowRightShort } from "react-icons/bs";
 import { IoSpeedometerOutline } from "react-icons/io5";
 import { useAuth } from "../AuthContext";
 import { HiOutlineClipboardList } from "react-icons/hi";
-import { MdApps } from "react-icons/md";
 import { AiOutlineUser } from "react-icons/ai";
-import { FcBusiness, FcCustomerSupport } from "react-icons/fc";
-import { FaChalkboardTeacher, FaGoogle, FaTags } from "react-icons/fa";
+
+import { FaChalkboardTeacher, FaTags } from "react-icons/fa";
 
 const Sidebar = ({ open, setOpen }) => {
   const { auth } = useAuth();

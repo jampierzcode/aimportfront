@@ -1,18 +1,6 @@
 import React, { useEffect, useState } from "react";
-import {
-  Table,
-  Button,
-  Modal,
-  Input,
-  Row,
-  Col,
-  Space,
-  message,
-  Spin,
-} from "antd";
+import { Table, Button, Modal, Input, Row, Col, Space, message } from "antd";
 import axios from "axios";
-
-const API_URL = "http://localhost/apipropiedades/api/sedes"; // ajusta a tu endpoint real
 
 const SedesManager = () => {
   const initialSede = {

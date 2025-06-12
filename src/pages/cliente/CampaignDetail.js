@@ -3,128 +3,35 @@ import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
+import { Table, message, Spin, Modal, Select, Button } from "antd";
+import { FaArrowLeft } from "react-icons/fa";
 import {
-  Table,
-  message,
-  Spin,
-  Modal,
-  Select,
-  Button,
-  Row,
-  Col,
-  Image,
-  Checkbox,
-} from "antd";
-import { ExclamationCircleOutlined } from "@ant-design/icons";
-import {
-  FaArrowLeft,
-  FaFileExcel,
-  FaResearchgate,
-  FaUsers,
-} from "react-icons/fa";
-import {
-  AiOutlineBarcode,
   AiOutlineDoubleRight,
   AiOutlineDownload,
   AiOutlineSearch,
-  AiOutlineUpload,
 } from "react-icons/ai";
-import BarcodeScanner from "../../components/rolSuperAdmin/BarCodeScanner";
-import { useAuth } from "../../components/AuthContext";
-import ImageUploadModal from "../../components/rolRepartidor/ImageUploadModal";
 
-import ModalAsignarPedidos from "../../components/rolSuperAdmin/ModalAsignarPedidos";
-import { BiBarcode } from "react-icons/bi";
 import { FiRefreshCw } from "react-icons/fi";
 import EstadisticasModal from "../superadmin/EstadisticasModal";
-const { confirm } = Modal;
 
 const { Option } = Select;
 const CampaignDetailsCliente = () => {
-  const { auth } = useAuth();
-
   const [searchTerm, setSearchTerm] = useState("");
-  const [isModalOpen, setIsModalOpen] = useState(false);
+
   const apiUrl = process.env.REACT_APP_API_URL;
   const { id } = useParams(); // Obtener ID de la URL
   const [campaign, setCampaign] = useState(null);
-  const apiUrlUpload = process.env.REACT_APP_UP_MULTIMEDIA;
 
-  const [pedidoId, setPedidoId] = useState(null);
   const [pedidos, setPedidos] = useState([]);
   const [visiblePedidos, setVisiblePedidos] = useState([]);
-  const [pedidosRegistrados, setPedidosRegistrados] = useState([]);
 
   // pedidos que se suben al excel useState
   const [modalVisible, setModalVisible] = useState(false);
-  const [modalVisibleMorePhotos, setModalVisibleMorePhotos] = useState(false);
+
   const [
     pedidoIdParaActualizarMultimedia,
     setPedidoIdParaActualizarMultimedia,
   ] = useState(null);
-
-  // estados para eliminar imagenes
-  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
-  const [selectedImages, setSelectedImages] = useState([]);
-  const [loadingDelete, setLoadingDelete] = useState(false);
-
-  const toggleImageSelection = (item) => {
-    setSelectedImages((prev) => {
-      const exists = prev.some((img) => img.url === item.url);
-      return exists
-        ? prev.filter((img) => img.url !== item.url)
-        : [...prev, item];
-    });
-  };
-
-  const handleDeleteSelected = async () => {
-    if (selectedImages.length === 0) {
-      message.warning("No has seleccionado ninguna imagen.");
-      return;
-    }
-
-    setLoadingDelete(true);
-
-    try {
-      const deleteMultimedia = await axios.post(
-        `${apiUrl}/deleteMultimediaMasive`,
-        { pedidos: selectedImages },
-        {
-          headers: {
-            Authorization: `Bearer ${auth.token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      if ((deleteMultimedia.status = "success")) {
-        const payload = {
-          urls: selectedImages.map((img) => img.url),
-        };
-        const response = await axios.delete(`${apiUrlUpload}/index.php`, {
-          headers: {
-            "Content-Type": "application/json", // <--- JSON, no multipart
-          },
-          data: payload,
-        });
-        const data = response.data;
-        if (data.success) {
-          message.success("Imágenes eliminadas correctamente");
-          await fetchCampaignData(); // vuelve a cargar los datos del pedido
-          setPedidoIdParaActualizarMultimedia(pedidoId);
-
-          setSelectedImages([]);
-        }
-      } else {
-        new Error(deleteMultimedia.error);
-      }
-    } catch (error) {
-      console.error("Error al eliminar imágenes:", error);
-      message.error("Ocurrió un error al eliminar las imágenes.");
-    } finally {
-      setLoadingDelete(false);
-    }
-  };
 
   const [modalVisibleSede, setModalVisibleSede] = useState(false);
   const [sedeSeleccionada, setSedeSeleccionada] = useState(null);
@@ -424,7 +331,6 @@ const CampaignDetailsCliente = () => {
       setCampaign(response.data);
       setPedidos(allPedidos);
       setVisiblePedidos(allPedidos);
-      setPedidosRegistrados(registrados);
     } catch (error) {
       console.error("Error al obtener la campaña:", error);
       message.error("No se pudo cargar la campaña.");
@@ -441,7 +347,6 @@ const CampaignDetailsCliente = () => {
   const [multimedia, setMultimedia] = useState([]);
 
   const handleVerFotos = (multimedia, id) => {
-    setPedidoId(id);
     setIsOpenMultimedia(true);
     setMultimedia(multimedia);
   };
