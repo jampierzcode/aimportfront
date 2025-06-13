@@ -64,23 +64,6 @@ const PedidosCliente = () => {
   }, []);
   // Función para obtener campañas desde la API
 
-  const buscar_sedes = async () => {
-    try {
-      const response = await axios.get(`${apiUrl}/sedes`);
-      console.log(response);
-      if (response.data.status === "success") {
-        setSedes(response.data.data);
-      } else {
-        console.log(response.data.message);
-      }
-    } catch (error) {
-      console.error("Error al obtener las sedes:", error);
-    }
-  };
-  useEffect(() => {
-    buscar_sedes();
-  }, [0]);
-
   return (
     <div>
       <h2 className="text-2xl mb-4">

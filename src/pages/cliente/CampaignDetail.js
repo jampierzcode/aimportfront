@@ -28,11 +28,6 @@ const CampaignDetailsCliente = () => {
   // pedidos que se suben al excel useState
   const [modalVisible, setModalVisible] = useState(false);
 
-  const [
-    pedidoIdParaActualizarMultimedia,
-    setPedidoIdParaActualizarMultimedia,
-  ] = useState(null);
-
   const [modalVisibleSede, setModalVisibleSede] = useState(false);
   const [sedeSeleccionada, setSedeSeleccionada] = useState(null);
   const [sedeSeleccionadaDestino, setSedeSeleccionadaDestino] = useState(null);
@@ -302,31 +297,11 @@ const CampaignDetailsCliente = () => {
     return Array.from(set);
   }, [visiblePedidos, departamento, provincia]);
 
-  useEffect(() => {
-    if (pedidoIdParaActualizarMultimedia && pedidos.length > 0) {
-      const pedidoActualizado = pedidos.find(
-        (p) => p.id === pedidoIdParaActualizarMultimedia
-      );
-      if (pedidoActualizado) {
-        setMultimedia(pedidoActualizado.multimedia);
-        setPedidoIdParaActualizarMultimedia(null); // Limpiar
-        setModalVisibleMorePhotos(false); // Cerrar modal si quieres aquí
-      }
-    }
-  }, [pedidos, pedidoIdParaActualizarMultimedia]);
-
-  const handleReadPedidos = () => {
-    setIsModalOpen(true);
-  };
-
   const fetchCampaignData = async () => {
     try {
       const response = await axios.get(`${apiUrl}/campaigns/${id}`);
       console.log(response);
       const allPedidos = response.data.pedidos || [];
-      const registrados = allPedidos.filter(
-        (pedido) => pedido.status === "registrado"
-      );
 
       setCampaign(response.data);
       setPedidos(allPedidos);
