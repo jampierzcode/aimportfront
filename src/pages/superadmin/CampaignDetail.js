@@ -15,8 +15,14 @@ import {
   Image,
   Checkbox,
 } from "antd";
-import { ExclamationCircleOutlined } from "@ant-design/icons";
-import { FaArrowLeft, FaUsers } from "react-icons/fa";
+import { ExclamationCircleOutlined, FileExcelFilled } from "@ant-design/icons";
+import {
+  FaArrowLeft,
+  FaFileExcel,
+  FaRegArrowAltCircleDown,
+  FaRegArrowAltCircleRight,
+  FaUsers,
+} from "react-icons/fa";
 import {
   AiOutlineBarcode,
   AiOutlineDoubleRight,
@@ -29,8 +35,9 @@ import { useAuth } from "../../components/AuthContext";
 import ImageUploadModal from "../../components/rolRepartidor/ImageUploadModal";
 import EstadisticasModal from "./EstadisticasModal";
 import ModalAsignarPedidos from "../../components/rolSuperAdmin/ModalAsignarPedidos";
-import { BiBarcode } from "react-icons/bi";
+import { BiBarcode, BiLineChart } from "react-icons/bi";
 import { FiRefreshCw } from "react-icons/fi";
+import BarcodeScannerImport from "../../components/rolSuperAdmin/BarCodeScannerImport";
 const { confirm } = Modal;
 
 const { Option } = Select;
@@ -39,6 +46,9 @@ const CampaignDetails = () => {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isModalOpenImportCodes, setIsModalOpenImportCodes] = useState(false);
+  const [isModalOpenLlenarData, setIsModalOpenLlenarData] = useState(false);
+  const [isModalOpenSendCamino, setIsModalOpenSendCamino] = useState(false);
   const apiUrl = process.env.REACT_APP_API_URL;
   const { id } = useParams(); // Obtener ID de la URL
   const [campaign, setCampaign] = useState(null);
@@ -46,12 +56,14 @@ const CampaignDetails = () => {
 
   const [pedidoId, setPedidoId] = useState(null);
   const [showAsignar, setShowAsignar] = useState(false);
+  const [showImportCodes, setShowImportCodes] = useState(false);
   const [pedidos, setPedidos] = useState([]);
   const [repartidores, setRepartidores] = useState([]);
   const [visiblePedidos, setVisiblePedidos] = useState([]);
   const [pedidosRegistrados, setPedidosRegistrados] = useState([]);
 
   const [pedidosCargados, setPedidosCargados] = useState([]);
+  const [pedidosCargadosImport, setPedidosCargadosImport] = useState([]);
 
   // pedidos que se suben al excel useState
   const [modalVisible, setModalVisible] = useState(false);
@@ -125,19 +137,31 @@ const CampaignDetails = () => {
   };
 
   const [modalVisibleSede, setModalVisibleSede] = useState(false);
+  const [modalVisibleSedeCompletar, setModalVisibleSedeCompletar] =
+    useState(false);
   const [sedeSeleccionada, setSedeSeleccionada] = useState(null);
   const [sedeSeleccionadaDestino, setSedeSeleccionadaDestino] = useState(null);
   const [sedes, setSedes] = useState([]);
   const [pedidosExcel, setPedidosExcel] = useState([]);
+  const [pedidosExcelCompletar, setPedidosExcelCompletar] = useState([]);
   const [asignados, setAsignados] = useState([]);
+  const [asignadosCompletar, setAsignadosCompletar] = useState([]);
   const [selectedRows, setSelectedRows] = useState([]);
+  const [selectedRowsCompletar, setSelectedRowsCompletar] = useState([]);
   const [fileSelect, setFileSelect] = useState(null);
+  const [fileSelectCompletar, setFileSelectCompletar] = useState(null);
 
   // ✅ Leer Excel
 
   const [tempPedidos, setTempPedidos] = useState([]);
   const [tempAsignados, setTempAsignados] = useState([]);
+  const [tempPedidosCompletar, setTempPedidosCompletar] = useState([]);
+  const [pedidosNoEncontradosByCode, setPedidosNoEncontradosByCode] = useState(
+    []
+  );
+  const [tempAsignadosCompletar, setTempAsignadosCompletar] = useState([]);
   const [showModal, setShowModal] = useState(false);
+  const [showModalCompletar, setShowModalCompletar] = useState(false);
   const [selectedOrigenId, setSelectedOrigenId] = useState(null);
   const handleFileUpload = (event) => {
     const file = event.target.files[0];
@@ -206,6 +230,80 @@ const CampaignDetails = () => {
 
     reader.readAsArrayBuffer(file);
   };
+  const handleFileUploadCompletar = (event) => {
+    const file = event.target.files[0];
+    setFileSelectCompletar(file);
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, { type: "array" });
+
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+
+      // Esta opción convierte todo a texto legible, incluyendo fechas
+      const jsonData = XLSX.utils.sheet_to_json(worksheet, { raw: false });
+
+      const nuevosPedidos = [];
+      const nuevosAsignados = [];
+      const pedidosNoEcontrados = [];
+
+      jsonData.forEach((row, index) => {
+        const pedido = {
+          id: index + 1,
+          id_solicitante: String(row["ID Solicitante"] || ""),
+          entrega: String(row["Entrega"] || ""),
+          org_ventas: String(row["Org.Ventas"] || ""),
+          fecha_pedido: String(row["Fecha Pedido"] || ""),
+          dni: String(row["DNI"] || ""),
+          bulto: String(row["BULTO"] || ""),
+          empaque: String(row["EMPAQUE"] || ""),
+          auditoria: String(row["AUDITORIA"] || ""),
+          mail_plan: String(row["Mail Plan"] || ""),
+          nombre_solicitante: String(row["Nombre Solicitante"] || ""),
+          departamento: String(row["Departamento"] || ""),
+          provincia: String(row["Provincia"] || ""),
+          distrito: String(row["Distrito"] || ""),
+          direccion: String(row["Dirección"] || ""),
+          referencia: String(row["Referencia"] || ""),
+          celular: String(row["Celular"] || ""),
+          ubigeo: String(row["Ubigeo"] || ""),
+          zona_ventas: String(row["Zona de ventas"] || ""),
+          marca: String(row["Marca"] || ""),
+          // mp: String(row["MP"] || ""),
+          num_cajas: String(row["Número de cajas"] || ""),
+        };
+        const isExistPedidos = pedidos.filter(
+          (p) => p.idSolicitante === pedido.id_solicitante
+        );
+        if (isExistPedidos.length === 1) {
+          const sede = sedes.find((s) => s.department === pedido.departamento);
+
+          if (sede) {
+            nuevosAsignados.push({
+              ...pedido,
+              destino_id: sede.id,
+            });
+          } else {
+            nuevosPedidos.push(pedido);
+          }
+        } else {
+          pedidosNoEcontrados.push(pedido);
+        }
+      });
+
+      console.log(nuevosPedidos);
+      console.log(nuevosAsignados);
+      setPedidosNoEncontradosByCode(pedidosNoEcontrados);
+      setTempPedidosCompletar(nuevosPedidos);
+      setTempAsignadosCompletar(nuevosAsignados);
+      setShowModalCompletar(true); // mostrar modal para seleccionar origen
+    };
+
+    reader.readAsArrayBuffer(file);
+  };
 
   // Cuando confirma la selección de origen
   const handleConfirmOrigen = () => {
@@ -222,6 +320,22 @@ const CampaignDetails = () => {
     setPedidosExcel(tempPedidos);
     setAsignados(asignadosConOrigen);
     setShowModal(false);
+    setSelectedOrigenId(null);
+  };
+  const handleConfirmOrigenCompletar = () => {
+    if (!selectedOrigenId) {
+      alert("Por favor selecciona un origen.");
+      return;
+    }
+
+    const asignadosConOrigen = tempAsignadosCompletar.map((asignado) => ({
+      ...asignado,
+      origen_id: selectedOrigenId,
+    }));
+
+    setPedidosExcelCompletar(tempPedidosCompletar);
+    setAsignadosCompletar(asignadosConOrigen);
+    setShowModalCompletar(false);
     setSelectedOrigenId(null);
   };
 
@@ -251,6 +365,36 @@ const CampaignDetails = () => {
     setSelectedRows([]);
     setModalVisibleSede(false);
   };
+  const asignarPedidosCompletar = () => {
+    if (!sedeSeleccionada) {
+      message.warning("Selecciona un origen");
+      return;
+    }
+    if (!sedeSeleccionadaDestino) {
+      message.warning("Selecciona un destino");
+      return;
+    }
+
+    const pedidosAsignadosCompletar = pedidosExcelCompletar
+      .filter((p) => selectedRowsCompletar.includes(p.id))
+      .map((p) => ({
+        ...p,
+        origen_id: sedeSeleccionada,
+        destino_id: sedeSeleccionadaDestino,
+      }));
+
+    console.log(pedidosAsignadosCompletar);
+
+    setAsignadosCompletar([
+      ...asignadosCompletar,
+      ...pedidosAsignadosCompletar,
+    ]);
+    setPedidosExcelCompletar(
+      pedidosExcelCompletar.filter((p) => !selectedRowsCompletar.includes(p.id))
+    );
+    setSelectedRowsCompletar([]);
+    setModalVisibleSedeCompletar(false);
+  };
 
   // ✅ Enviar pedidos a la API
   const subirPedidos = async () => {
@@ -275,6 +419,68 @@ const CampaignDetails = () => {
     setAsignados([]);
     await fetchCampaignData();
     setModalVisible(false);
+  };
+  const [loadingCompletar, setLoadingCompletar] = useState(false);
+  const [loadingSendCamino, setLoadingSendCamino] = useState(false);
+  const subirPedidosToCompletar = async () => {
+    setLoadingCompletar(true);
+    // if (pedidosNoEncontradosByCode.length > 0) {
+    //   message.warning(
+    //     "Existen pedidos que no se cargaron, porque no se encontraron dentro de los codigos de barra precargados"
+    //   );
+    //   console.log(pedidosNoEncontradosByCode);
+    //   return;
+    // }
+    if (pedidosExcelCompletar.length > 0) {
+      message.warning("Aún hay pedidos sin asignar");
+      return;
+    }
+    if (fileSelectCompletar === null) {
+      message.warning("No se subio ningun archivo excel");
+      return;
+    }
+
+    const response = await fetch(`${apiUrl}/pedidosUpdateInfoMasive`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pedidos: asignadosCompletar }),
+    });
+    console.log(response);
+    setLoadingCompletar(false);
+    message.success("Pedidos actualizados correctamente");
+    setPedidosExcelCompletar([]);
+    setAsignadosCompletar([]);
+    setPedidosNoEncontradosByCode([]);
+    setFileSelectCompletar(null);
+    await fetchCampaignData();
+    setIsModalOpenLlenarData(false);
+  };
+  const actualizarEncaminoAll = async () => {
+    setLoadingSendCamino(true);
+    // if (pedidosNoEncontradosByCode.length > 0) {
+    //   message.warning(
+    //     "Existen pedidos que no se cargaron, porque no se encontraron dentro de los codigos de barra precargados"
+    //   );
+    //   console.log(pedidosNoEncontradosByCode);
+    //   return;
+    // }
+    if (pedidosRecepcionadosSend.length === 0) {
+      message.warning("No hay pedidos para enviar con status:recepcionado");
+      return;
+    }
+    return;
+
+    const response = await fetch(`${apiUrl}/pedidosUpdateInfoMasive`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pedidos: pedidosRecepcionadosSend }),
+    });
+    console.log(response);
+    setLoadingSendCamino(false);
+    message.success("Pedidos actualizados correctamente en camino");
+
+    await fetchCampaignData();
+    setIsModalOpenSendCamino(false);
   };
 
   const buscar_sedes = async () => {
@@ -709,6 +915,40 @@ const CampaignDetails = () => {
       console.log(error);
     }
   };
+  const [pedidosRecepcionadosSend, setPedidosRecepcionadosSend] = useState([]);
+  const handleSendCaminoMasive = () => {
+    setIsModalOpenSendCamino(true);
+    const pedidosRecepcionados = pedidos.filter(
+      (p) => p.status === "recepcionado"
+    );
+    setPedidosRecepcionadosSend(pedidosRecepcionados);
+  };
+  const sendDataCargadosImportCodes = async () => {
+    console.log(pedidosCargadosImport);
+
+    try {
+      const response = await axios.post(
+        `${apiUrl}/senDataPedidosCodes`,
+        { pedidos: pedidosCargadosImport, campaign_id: id },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${auth.token}`,
+          },
+        }
+      );
+      console.log(response);
+      const data = response.data;
+      if (data.status === "success") {
+        setPedidosCargadosImport([]);
+        await fetchCampaignData();
+      } else {
+        new Error("error de compilacion");
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  };
   const eliminarProductosNoEncontrados = () => {
     const codigosRegistrados = pedidosRegistrados.map((p) => p.idSolicitante);
     const nuevosPedidosCargados = pedidosCargados.filter((codigo) =>
@@ -748,6 +988,14 @@ const CampaignDetails = () => {
       console.log("Subiendo todos los pedidos cargados directamente...");
       await sendDataCargados();
     } else {
+      message.error("Has recogido más productos de los que hay en la campaña.");
+    }
+  };
+  const recogerPedidosImportCodes = async () => {
+    try {
+      console.log("Subiendo todos los pedidos cargados directamente...");
+      await sendDataCargadosImportCodes();
+    } catch (error) {
       message.error("Has recogido más productos de los que hay en la campaña.");
     }
   };
@@ -797,10 +1045,35 @@ const CampaignDetails = () => {
     const blob = new Blob([excelBuffer], { type: "application/octet-stream" });
     saveAs(blob, "pedidos.xlsx");
   };
+  const descargarDatosNoEncontrados = () => {
+    const data = pedidosNoEncontradosByCode;
+
+    const worksheet = XLSX.utils.json_to_sheet(data);
+
+    // Autoajustar el ancho de columnas
+    const columnWidths = Object.keys(data[0]).map((key) => ({
+      wch:
+        Math.max(
+          key.length,
+          ...data.map((row) => (row[key] ? row[key].toString().length : 0))
+        ) + 2, // +2 para dejar algo de margen
+    }));
+    worksheet["!cols"] = columnWidths;
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Pedidos no encontrados");
+
+    const excelBuffer = XLSX.write(workbook, {
+      bookType: "xlsx",
+      type: "array",
+    });
+    const blob = new Blob([excelBuffer], { type: "application/octet-stream" });
+    saveAs(blob, "pedidosnoencontrados.xlsx");
+  };
 
   return (
     <div>
-      <div className="flex gap-3 mb-4">
+      <div className="flex gap-3 mb-4 w-full overflow-x-auto">
         <EstadisticasModal pedidos={pedidos} />
         <button
           onClick={() => exportToExcelReport(pedidos)}
@@ -810,21 +1083,42 @@ const CampaignDetails = () => {
           Exportar
         </button>
         <button
-          className="rounded px-3 py-2 bg-primary text-white text-sm flex gap-3 items-center"
+          className="text-nowrap rounded px-3 py-2 bg-primary text-white text-sm flex gap-3 items-center"
           onClick={() => setModalVisible(true)}
         >
           <AiOutlineUpload /> Importar
         </button>
         <button
+          onClick={() => setIsModalOpenImportCodes(true)}
+          className="text-nowrap rounded flex items-center gap-3 px-3 py-2 bg-primary text-white"
+        >
+          <BiBarcode />
+          Recibir Codigos
+        </button>
+        <button
+          onClick={() => setIsModalOpenLlenarData(true)}
+          className="text-nowrap rounded flex items-center gap-3 px-3 py-2 bg-primary text-white"
+        >
+          <FileExcelFilled />
+          Completar Data
+        </button>
+        <button
+          onClick={() => handleSendCaminoMasive()}
+          className="text-nowrap rounded flex items-center gap-3 px-3 py-2 bg-blue-400 text-white"
+        >
+          <FaRegArrowAltCircleRight />
+          Actualizar en Camino
+        </button>
+        <button
           onClick={() => setShowAsignar(true)}
-          className="rounded flex items-center gap-3 px-3 py-2 bg-primary text-white"
+          className="text-nowrap rounded flex items-center gap-3 px-3 py-2 bg-primary text-white"
         >
           <FaUsers />
           Asignar Pedidos
         </button>
         <button
           onClick={() => navigate(`/generator-codigos/${id}`)}
-          className="rounded px-3 py-2 flex items-center gap-3 bg-black text-white text-sm"
+          className="text-nowrap rounded px-3 py-2 flex items-center gap-3 bg-black text-white text-sm"
         >
           <BiBarcode />
           Generar Codigos
@@ -832,7 +1126,7 @@ const CampaignDetails = () => {
         {pedidosRegistrados.length > 0 ? (
           <button
             onClick={() => handleReadPedidos()}
-            className="px-3 py-2 flex items-center gap-3 bg-blue-600 text-white text-sm"
+            className="text-nowrap px-3 py-2 flex items-center gap-3 bg-blue-600 text-white text-sm"
           >
             <AiOutlineBarcode />
             Leer Pedidos
@@ -865,6 +1159,24 @@ const CampaignDetails = () => {
           />
           <button
             onClick={() => recogerPedidos()}
+            className="px-3 py-2 flex items-center gap-3 bg-primary text-white text-sm"
+          >
+            Recoger Pedidos
+          </button>
+        </Modal>
+        <Modal
+          title="Importa aqui tus codigos de barras"
+          open={isModalOpenImportCodes}
+          onCancel={() => setIsModalOpenImportCodes(false)}
+          footer={null}
+        >
+          <BarcodeScannerImport
+            isModal={isModalOpenImportCodes}
+            pedidosCargados={pedidosCargadosImport}
+            setPedidosCargados={setPedidosCargadosImport}
+          />
+          <button
+            onClick={() => recogerPedidosImportCodes()}
             className="px-3 py-2 flex items-center gap-3 bg-primary text-white text-sm"
           >
             Recoger Pedidos
@@ -915,6 +1227,49 @@ const CampaignDetails = () => {
           <button
             className="px-3 py-2 rounded bg-gray-200 text-gray-500"
             onClick={() => setShowModal(false)}
+          >
+            Cancelar
+          </button>
+        </div>
+      </Modal>
+      <Modal
+        open={showModalCompletar}
+        onCancel={() => setShowModalCompletar(false)}
+        footer={null}
+      >
+        <div className="modal">
+          <h2>Algunos registros tienen sede asignada. Selecciona un origen:</h2>
+          <Select
+            showSearch
+            filterOption={(input, option) =>
+              option?.label?.toLowerCase().includes(input.toLowerCase())
+            }
+            optionFilterProp="label"
+            onChange={(value) => setSelectedOrigenId(value)} // Ahora devuelve el ID
+            placeholder="Selecciona una sede"
+            style={{ width: "100%" }}
+          >
+            {sedes.map((sede) => (
+              <Option
+                key={sede.id}
+                value={sede.id} // 👈 Aquí ahora se usa el ID como valor
+                label={`${sede.nameReferential} - ${sede.department} ${sede.province} ${sede.district}`}
+              >
+                {sede.nameReferential} - {sede.department} {sede.province}{" "}
+                {sede.district}
+              </Option>
+            ))}
+          </Select>
+
+          <button
+            className="px-3 py-2 rounded bg-primary text-white"
+            onClick={handleConfirmOrigenCompletar}
+          >
+            Confirmar
+          </button>
+          <button
+            className="px-3 py-2 rounded bg-gray-200 text-gray-500"
+            onClick={() => setShowModalCompletar(false)}
           >
             Cancelar
           </button>
@@ -973,6 +1328,59 @@ const CampaignDetails = () => {
         <Button onClick={asignarPedidos}>Asignar</Button>
       </Modal>
       <Modal
+        open={modalVisibleSedeCompletar}
+        onCancel={() => setModalVisibleSedeCompletar(false)}
+        footer={null}
+      >
+        <span>Origen</span>
+        <Select
+          showSearch
+          filterOption={(input, option) =>
+            option?.label?.toLowerCase().includes(input.toLowerCase())
+          }
+          optionFilterProp="label"
+          onChange={(value) => setSedeSeleccionada(value)} // Ahora devuelve el ID
+          placeholder="Selecciona una sede"
+          style={{ width: "100%" }}
+        >
+          {sedes.map((sede) => (
+            <Option
+              key={sede.id}
+              value={sede.id} // 👈 Aquí ahora se usa el ID como valor
+              label={`${sede.nameReferential} - ${sede.department} ${sede.province} ${sede.district}`}
+            >
+              {sede.nameReferential} - {sede.department} {sede.province}{" "}
+              {sede.district}
+            </Option>
+          ))}
+        </Select>
+        <span>Destino</span>
+        <Select
+          showSearch
+          filterOption={(input, option) =>
+            option?.label?.toLowerCase().includes(input.toLowerCase())
+          }
+          optionFilterProp="label"
+          onChange={(value) => setSedeSeleccionadaDestino(value)} // Ahora devuelve el ID
+          placeholder="Selecciona un destino"
+          style={{ width: "100%" }}
+        >
+          {sedes.map((sede) => (
+            <Option
+              key={sede.id}
+              value={sede.id} // 👈 Aquí ahora se usa el ID como valor
+              label={`${sede.nameReferential} - ${sede.department} ${sede.province} ${sede.district}`}
+            >
+              {sede.nameReferential} - {sede.department} {sede.province}{" "}
+              {sede.district}
+            </Option>
+          ))}
+        </Select>
+
+        <Button onClick={asignarPedidosCompletar}>Asignar</Button>
+      </Modal>
+      {/* modal de importar data */}
+      <Modal
         open={modalVisible}
         onCancel={() => setModalVisible(false)}
         footer={null}
@@ -1027,6 +1435,123 @@ const CampaignDetails = () => {
           </div>
 
           <Button onClick={subirPedidos}>Subir Data</Button>
+        </div>
+      </Modal>
+      {/* modal de completar data */}
+      <Modal
+        open={isModalOpenLlenarData}
+        onCancel={() => setIsModalOpenLlenarData(false)}
+        footer={null}
+        width="90vw"
+        title={"Aqui completaras la data a los codigos precargados"}
+      >
+        <div className="w-full">
+          {loadingCompletar ? (
+            <div className="w-full h-full z-50 absolute top-0 right-0 left-0 bottom-0 bg-primary text-white flex items-center justify-center gap-3">
+              <Spin /> <h1>Actualizando la data</h1>
+            </div>
+          ) : null}
+          <div className="z-40 flex flex-col gap-3">
+            <input type="file" onChange={handleFileUploadCompletar} />
+            <div className="flex gap-3 justify-between">
+              {/* 🟢 Panel Izquierdo - Pedidos sin asignar */}
+              <Table
+                className="max-w-[500px] overflow-auto"
+                rowSelection={{
+                  selectedRowKeys: selectedRowsCompletar,
+                  onChange: setSelectedRowsCompletar,
+                }}
+                dataSource={pedidosExcelCompletar}
+                columns={[
+                  { title: "ID solicitante", dataIndex: "id_solicitante" },
+                  { title: "Solicitante", dataIndex: "nombre_solicitante" },
+                  { title: "Numero de cajas", dataIndex: "num_cajas" },
+                  { title: "departamento", dataIndex: "departamento" },
+                  { title: "provincia", dataIndex: "provincia" },
+                  { title: "distrito", dataIndex: "distrito" },
+                  { title: "ubigeo", dataIndex: "ubigeo" },
+                ]}
+                rowKey="id"
+              />
+
+              {/* 🟢 Botón Precargar */}
+              <div
+                className="px-3 py-2 rounded bg-primary text-white font-bold flex items-center gap-3 max-h-max max-w-max"
+                onClick={() => setModalVisibleSedeCompletar(true)}
+              >
+                Precargar <AiOutlineDoubleRight />
+              </div>
+
+              {/* 🟢 Panel Derecho - Pedidos asignados */}
+              <Table
+                className="max-w-[500px] overflow-auto"
+                dataSource={asignadosCompletar}
+                columns={[
+                  { title: "Solicitante", dataIndex: "nombre_solicitante" },
+                  { title: "Numero de cajas", dataIndex: "num_cajas" },
+                  { title: "departamento", dataIndex: "departamento" },
+                  { title: "provincia", dataIndex: "provincia" },
+                  { title: "distrito", dataIndex: "distrito" },
+                  { title: "ubigeo", dataIndex: "ubigeo" },
+                ]}
+                rowKey="id"
+              />
+            </div>
+            {pedidosNoEncontradosByCode.length > 0 ? (
+              <div className="w-full">
+                <h1 className="px-3 py-2 rounded bg-gray-200 text-gray-900 font-bold text-sm">
+                  {pedidosNoEncontradosByCode.length} pedidos no han sido
+                  cargados para completar, porque no se concuerdan con los
+                  codigos previamente cargados
+                </h1>
+                <button
+                  onClick={descargarDatosNoEncontrados}
+                  className="px-3 py-2 bg-green-600 text-white text-sm font-bold flex gap-3"
+                >
+                  <FaFileExcel /> Descargar Datos no encontrados
+                </button>
+              </div>
+            ) : null}
+
+            <Button onClick={subirPedidosToCompletar}>Subir Data</Button>
+          </div>
+        </div>
+      </Modal>
+      {/* modal send en camino*/}
+      <Modal
+        open={isModalOpenSendCamino}
+        onCancel={() => setIsModalOpenSendCamino(false)}
+        footer={null}
+        width="90vw"
+        title={"Aqui completaras la data a los codigos precargados"}
+      >
+        <div className="w-full">
+          {loadingSendCamino ? (
+            <div className="w-full h-full z-50 absolute top-0 right-0 left-0 bottom-0 bg-primary text-white flex items-center justify-center gap-3">
+              <Spin /> <h1>Enviando productos a ruta</h1>
+            </div>
+          ) : null}
+          <div className="z-40 flex flex-col gap-3">
+            <div className="flex gap-3 justify-between">
+              {/* 🟢 Panel Izquierdo - Pedidos sin asignar */}
+              <Table
+                className="w-full overflow-auto"
+                dataSource={pedidosRecepcionadosSend}
+                columns={[
+                  { title: "ID solicitante", dataIndex: "idSolicitante" },
+                  { title: "Solicitante", dataIndex: "nombreSolicitante" },
+                  { title: "Numero de cajas", dataIndex: "numCajas" },
+                  { title: "departamento", dataIndex: "departamento" },
+                  { title: "provincia", dataIndex: "provincia" },
+                  { title: "distrito", dataIndex: "distrito" },
+                  { title: "ubigeo", dataIndex: "ubigeo" },
+                ]}
+                rowKey="id"
+              />
+            </div>
+
+            <Button onClick={actualizarEncaminoAll}>Subir Data</Button>
+          </div>
         </div>
       </Modal>
 

@@ -20,6 +20,7 @@ const PedidoManager = () => {
   const [campaignName, setCampaignName] = useState("");
   const [modalVisible, setModalVisible] = useState(false);
   const [modalVisibleSede, setModalVisibleSede] = useState(false);
+  const [modalVisibleCreated, setModalVisibleCreated] = useState(false);
   const [sedeSeleccionada, setSedeSeleccionada] = useState(null);
   const [sedeSeleccionadaDestino, setSedeSeleccionadaDestino] = useState(null);
   const [fileSelect, setFileSelect] = useState(null);
@@ -261,6 +262,32 @@ const PedidoManager = () => {
     await fetchCampaigns();
     setModalVisible(false);
   };
+  const createdCampaing = async () => {
+    if (!campaignName.trim()) {
+      message.warning("El nombre de la campaña es obligatorio");
+      return;
+    }
+    if (pedidos.length > 0) {
+      message.warning("Aún hay pedidos sin asignar");
+      return;
+    }
+
+    const response = await fetch(`${apiUrl}/campaigns`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: campaignName,
+        cliente_id: selectCliente,
+      }),
+    });
+    console.log(response);
+
+    message.success("Campaña creada correctamente");
+
+    setCampaignName("");
+    await fetchCampaigns();
+    setModalVisibleCreated(false);
+  };
 
   const buscar_sedes = async () => {
     try {
@@ -284,7 +311,7 @@ const PedidoManager = () => {
       <div className="w-full flex gap-3">
         <div
           className="max-w-max px-3 py-2 bg-gray-300 text-gray-900 font-bold text-sm cursor-pointer"
-          // onClick={() => setModalVisible(true)}
+          onClick={() => setModalVisibleCreated(true)}
         >
           + Crear Nueva Campaña
         </div>
@@ -396,6 +423,36 @@ const PedidoManager = () => {
         </Select>
 
         <Button onClick={asignarPedidos}>Asignar</Button>
+      </Modal>
+      <Modal
+        open={modalVisibleCreated}
+        onCancel={() => setModalVisibleCreated(false)}
+        footer={null}
+        width="90vw"
+      >
+        {" "}
+        <div className="flex flex-col gap-3">
+          <Input
+            placeholder="Nombre de la campaña"
+            value={campaignName}
+            onChange={(e) => setCampaignName(e.target.value)}
+          />
+          <Select
+            showSearch
+            placeholder="Selecciona un cliente"
+            onChange={handleChange}
+            filterOption={filterOption}
+            style={{ width: 300 }}
+          >
+            {clientes.map((cliente) => (
+              <Option key={cliente.id} value={cliente.id}>
+                {cliente.razonSocial} ({cliente.ruc})
+              </Option>
+            ))}
+          </Select>
+
+          <Button onClick={createdCampaing}>Crear Campaña</Button>
+        </div>
       </Modal>
       <Modal
         open={modalVisible}
