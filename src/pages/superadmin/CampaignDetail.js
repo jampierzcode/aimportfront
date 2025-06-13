@@ -420,6 +420,8 @@ const CampaignDetails = () => {
     await fetchCampaignData();
     setModalVisible(false);
   };
+  const [loadingRecogerPedidosCodes, setloadingRecogerPedidosCodes] =
+    useState(false);
   const [loadingCompletar, setLoadingCompletar] = useState(false);
   const [loadingSendCamino, setLoadingSendCamino] = useState(false);
   const subirPedidosToCompletar = async () => {
@@ -993,9 +995,12 @@ const CampaignDetails = () => {
   };
   const recogerPedidosImportCodes = async () => {
     try {
+      setloadingRecogerPedidosCodes(true);
       console.log("Subiendo todos los pedidos cargados directamente...");
       await sendDataCargadosImportCodes();
+      setloadingRecogerPedidosCodes(false);
     } catch (error) {
+      setloadingRecogerPedidosCodes(false);
       message.error("Has recogido más productos de los que hay en la campaña.");
     }
   };
@@ -1170,17 +1175,26 @@ const CampaignDetails = () => {
           onCancel={() => setIsModalOpenImportCodes(false)}
           footer={null}
         >
-          <BarcodeScannerImport
-            isModal={isModalOpenImportCodes}
-            pedidosCargados={pedidosCargadosImport}
-            setPedidosCargados={setPedidosCargadosImport}
-          />
-          <button
-            onClick={() => recogerPedidosImportCodes()}
-            className="px-3 py-2 flex items-center gap-3 bg-primary text-white text-sm"
-          >
-            Recoger Pedidos
-          </button>
+          <div className="w-full">
+            {loadingRecogerPedidosCodes ? (
+              <div className="w-full h-full z-50 absolute top-0 right-0 left-0 bottom-0 bg-primary text-white flex items-center justify-center gap-3">
+                <Spin /> <h1>Recogiendo pedidos</h1>
+              </div>
+            ) : null}
+
+            <BarcodeScannerImport
+              isModal={isModalOpenImportCodes}
+              pedidosCargados={pedidosCargadosImport}
+              setPedidosCargados={setPedidosCargadosImport}
+            />
+            <button
+              onClick={() => recogerPedidosImportCodes()}
+              disabled={loadingRecogerPedidosCodes}
+              className="px-3 py-2 flex items-center gap-3 bg-primary text-white text-sm"
+            >
+              Recoger Pedidos
+            </button>
+          </div>
         </Modal>
         <button
           onClick={() => navigate("/pedidos")}
