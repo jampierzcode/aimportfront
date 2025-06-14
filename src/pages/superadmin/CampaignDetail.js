@@ -18,9 +18,10 @@ import {
 import { ExclamationCircleOutlined, FileExcelFilled } from "@ant-design/icons";
 import {
   FaArrowLeft,
+  FaBoxOpen,
   FaFileExcel,
-  FaRegArrowAltCircleDown,
-  FaRegArrowAltCircleRight,
+  FaInbox,
+  FaTruck,
   FaUsers,
 } from "react-icons/fa";
 import {
@@ -48,7 +49,7 @@ const CampaignDetails = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isModalOpenImportCodes, setIsModalOpenImportCodes] = useState(false);
   const [isModalOpenLlenarData, setIsModalOpenLlenarData] = useState(false);
-  const [isModalOpenSendCamino, setIsModalOpenSendCamino] = useState(false);
+
   const apiUrl = process.env.REACT_APP_API_URL;
   const { id } = useParams(); // Obtener ID de la URL
   const [campaign, setCampaign] = useState(null);
@@ -423,7 +424,7 @@ const CampaignDetails = () => {
   const [loadingRecogerPedidosCodes, setloadingRecogerPedidosCodes] =
     useState(false);
   const [loadingCompletar, setLoadingCompletar] = useState(false);
-  const [loadingSendCamino, setLoadingSendCamino] = useState(false);
+
   const subirPedidosToCompletar = async () => {
     setLoadingCompletar(true);
     // if (pedidosNoEncontradosByCode.length > 0) {
@@ -457,32 +458,132 @@ const CampaignDetails = () => {
     await fetchCampaignData();
     setIsModalOpenLlenarData(false);
   };
-  const actualizarEncaminoAll = async () => {
-    setLoadingSendCamino(true);
-    // if (pedidosNoEncontradosByCode.length > 0) {
-    //   message.warning(
-    //     "Existen pedidos que no se cargaron, porque no se encontraron dentro de los codigos de barra precargados"
-    //   );
-    //   console.log(pedidosNoEncontradosByCode);
-    //   return;
-    // }
-    if (pedidosRecepcionadosSend.length === 0) {
-      message.warning("No hay pedidos para enviar con status:recepcionado");
+
+  // modal estados modales masivos
+  const [isModalOpenSendStatus, setIsModalOpenSendStatus] = useState(false); //booleano para abrir modal donde se seleccionan de los pedidos filtrados para cambiar status
+  const [loadingPedidosSendStatus, setLoadingPedidosSendStatus] =
+    useState(false); //carga de envio de pedidos seleccionados a cambiar status
+  const [pedidosSendStatus, setPedidosSendStatus] = useState([]); // pedidos filtrados para cambiar status
+  const [pedidosSeleccionadosSendStatus, setPedidosSeleccionadosSendStatus] =
+    useState([]); // pedidos seleccionados del pedidos filtrado para cambiar status
+  const [filterSendStatusChange, setFilterSendStatusChange] = useState(null); // estado para saber a que tipo de status se actualizaran los pedidos
+  const [filtroDepartamentoSendStatus, setFiltroDepartamentoSendStatus] =
+    useState(null);
+  const [filtroProvinciaSendStatus, setFiltroProvinciaSendStatus] =
+    useState(null);
+  const [filtroDistritoSendStatus, setFiltroDistritoSendStatus] =
+    useState(null);
+  const [pedidosFiltradosSendStatus, setPedidosFiltradosSendStatus] = useState(
+    []
+  );
+
+  useEffect(() => {
+    filtrarPedidosSendStatus();
+    // eslint-disable-next-line
+  }, [
+    pedidosSendStatus,
+    filtroDepartamentoSendStatus,
+    filtroProvinciaSendStatus,
+    filtroDistritoSendStatus,
+  ]);
+
+  const filtrarPedidosSendStatus = () => {
+    setPedidosSeleccionadosSendStatus([]);
+    const filtrados = pedidosSendStatus.filter((pedido) => {
+      return (
+        (!filtroDepartamentoSendStatus ||
+          pedido.departamento === filtroDepartamentoSendStatus) &&
+        (!filtroProvinciaSendStatus ||
+          pedido.provincia === filtroProvinciaSendStatus) &&
+        (!filtroDistritoSendStatus ||
+          pedido.distrito === filtroDistritoSendStatus)
+      );
+    });
+    setPedidosFiltradosSendStatus(filtrados);
+  };
+  const handleSeleccionarTodosSendStatus = () => {
+    const ids = pedidosFiltradosSendStatus.map((pedido) => pedido.id);
+    setPedidosSeleccionadosSendStatus(ids);
+  };
+
+  const departamentosSendStatus = [
+    ...new Set(pedidosSendStatus.map((p) => p.departamento)),
+  ];
+
+  const provinciasSendStatus = filtroDepartamentoSendStatus
+    ? [
+        ...new Set(
+          pedidosSendStatus
+            .filter((p) => p.departamento === filtroDepartamentoSendStatus)
+            .map((p) => p.provincia)
+        ),
+      ]
+    : [];
+
+  const distritosSendStatus = filtroProvinciaSendStatus
+    ? [
+        ...new Set(
+          pedidosSendStatus
+            .filter((p) => p.provincia === filtroProvinciaSendStatus)
+            .map((p) => p.distrito)
+        ),
+      ]
+    : [];
+
+  const handlePedidosSendStatus = (filter) => {
+    //funcion que  recibe el filtro que se debe hacer para seleccionar despues los pedidos a cambiar status
+    setFilterSendStatusChange(filter);
+    setIsModalOpenSendStatus(true);
+    const pedidosFiltrados = pedidos.filter((p) => p.status === filter);
+    setPedidosSendStatus(pedidosFiltrados);
+  };
+
+  const actualizarStatusPedidosMasive = async () => {
+    //funcion que envia los pedidos seleccionados del filtro para cambiar status
+
+    if (pedidosSeleccionadosSendStatus.length === 0) {
+      message.warning(
+        "No hay pedidos seleccionados para enviar con status:recepcionado"
+      );
       return;
     }
-    return;
+    setLoadingPedidosSendStatus(true);
+    try {
+      var statusNew = "";
+      switch (filterSendStatusChange) {
+        case "registrado":
+          statusNew = "recepcionado";
+          break;
+        case "recepcionado":
+          statusNew = "en camino"; //en ruta(en camino)
+          break;
+        case "en almacen":
+          statusNew = "entregado"; //en ruta(en camino)
+          break;
 
-    const response = await fetch(`${apiUrl}/pedidosUpdateInfoMasive`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ pedidos: pedidosRecepcionadosSend }),
-    });
-    console.log(response);
-    setLoadingSendCamino(false);
-    message.success("Pedidos actualizados correctamente en camino");
+        default:
+          break;
+      }
+      message.warning("en mantenimiento este modulo");
+      return;
 
-    await fetchCampaignData();
-    setIsModalOpenSendCamino(false);
+      const response = await fetch(`${apiUrl}/pedidosUpdateInfoMasive`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          pedidos: pedidosSeleccionadosSendStatus,
+          status: statusNew,
+        }),
+      });
+      console.log(response);
+      setLoadingPedidosSendStatus(false);
+      message.success("Pedidos actualizados correctamente en camino");
+
+      await fetchCampaignData();
+      setIsModalOpenSendStatus(false);
+    } catch (error) {
+      message.error("Ocurrio un error inesperado, contactar con proveedor");
+    }
   };
 
   const buscar_sedes = async () => {
@@ -917,14 +1018,7 @@ const CampaignDetails = () => {
       console.log(error);
     }
   };
-  const [pedidosRecepcionadosSend, setPedidosRecepcionadosSend] = useState([]);
-  const handleSendCaminoMasive = () => {
-    setIsModalOpenSendCamino(true);
-    const pedidosRecepcionados = pedidos.filter(
-      (p) => p.status === "recepcionado"
-    );
-    setPedidosRecepcionadosSend(pedidosRecepcionados);
-  };
+
   const sendDataCargadosImportCodes = async () => {
     console.log(pedidosCargadosImport);
 
@@ -1078,71 +1172,13 @@ const CampaignDetails = () => {
 
   return (
     <div>
-      <div className="flex gap-3 mb-4 w-full overflow-x-auto">
-        <EstadisticasModal pedidos={pedidos} />
-        <button
-          onClick={() => exportToExcelReport(pedidos)}
-          className="bg-blue-500 text-white px-4 py-2 rounded flex gap-3 items-center"
-        >
-          <AiOutlineDownload />
-          Exportar
-        </button>
-        <button
-          className="text-nowrap rounded px-3 py-2 bg-primary text-white text-sm flex gap-3 items-center"
-          onClick={() => setModalVisible(true)}
-        >
-          <AiOutlineUpload /> Importar
-        </button>
-        <button
-          onClick={() => setIsModalOpenImportCodes(true)}
-          className="text-nowrap rounded flex items-center gap-3 px-3 py-2 bg-primary text-white"
-        >
-          <BiBarcode />
-          Recibir Codigos
-        </button>
-        <button
-          onClick={() => setIsModalOpenLlenarData(true)}
-          className="text-nowrap rounded flex items-center gap-3 px-3 py-2 bg-primary text-white"
-        >
-          <FileExcelFilled />
-          Completar Data
-        </button>
-        <button
-          onClick={() => handleSendCaminoMasive()}
-          className="text-nowrap rounded flex items-center gap-3 px-3 py-2 bg-blue-400 text-white"
-        >
-          <FaRegArrowAltCircleRight />
-          Actualizar en Camino
-        </button>
-        <button
-          onClick={() => setShowAsignar(true)}
-          className="text-nowrap rounded flex items-center gap-3 px-3 py-2 bg-primary text-white"
-        >
-          <FaUsers />
-          Asignar Pedidos
-        </button>
-        <button
-          onClick={() => navigate(`/generator-codigos/${id}`)}
-          className="text-nowrap rounded px-3 py-2 flex items-center gap-3 bg-black text-white text-sm"
-        >
-          <BiBarcode />
-          Generar Codigos
-        </button>
-        {pedidosRegistrados.length > 0 ? (
-          <button
-            onClick={() => handleReadPedidos()}
-            className="text-nowrap px-3 py-2 flex items-center gap-3 bg-blue-600 text-white text-sm"
-          >
-            <AiOutlineBarcode />
-            Leer Pedidos
-          </button>
-        ) : null}
-      </div>
       <div className="flex justify-between gap-3">
-        <h2 className="text-2xl">
-          <b>Campaña: {campaign?.name}</b>
-        </h2>
-        <h3 className="text-xs">Puedes ver todos tus pedidos aquí</h3>
+        <div>
+          <h2 className="text-3xl">
+            <b>Campaña: {campaign?.name}</b>
+          </h2>
+          <h3 className="text-sm">Puedes ver todos tus pedidos aquí</h3>
+        </div>
 
         <Modal
           title="Lectura de Pedidos"
@@ -1202,6 +1238,54 @@ const CampaignDetails = () => {
         >
           <FaArrowLeft /> Regresar
         </button>
+      </div>
+
+      <div className="flex gap-3 mb-4 w-full overflow-x-auto">
+        <EstadisticasModal pedidos={pedidos} />
+        <button
+          onClick={() => exportToExcelReport(pedidos)}
+          className="bg-gray-800 text-white px-4 py-2 rounded flex gap-3 items-center"
+        >
+          <AiOutlineDownload />
+          Exportar
+        </button>
+        <button
+          className="text-nowrap rounded px-3 py-2 bg-primary text-white text-sm flex gap-3 items-center"
+          onClick={() => setModalVisible(true)}
+        >
+          <AiOutlineUpload /> Importar
+        </button>
+        <button
+          onClick={() => setIsModalOpenImportCodes(true)}
+          className="text-nowrap rounded flex items-center gap-3 px-3 py-2 bg-gray-800 text-white"
+        >
+          <BiBarcode />
+          Recibir Codigos
+        </button>
+        <button
+          onClick={() => setIsModalOpenLlenarData(true)}
+          className="text-nowrap rounded flex items-center gap-3 px-3 py-2 bg-gray-800 text-white"
+        >
+          <FileExcelFilled />
+          Completar Data
+        </button>
+
+        <button
+          onClick={() => navigate(`/generator-codigos/${id}`)}
+          className="text-nowrap rounded px-3 py-2 flex items-center gap-3 bg-gray-800 text-white text-sm"
+        >
+          <BiBarcode />
+          Generar Codigos
+        </button>
+        {pedidosRegistrados.length > 0 ? (
+          <button
+            onClick={() => handleReadPedidos()}
+            className="text-nowrap px-3 py-2 flex items-center gap-3 bg-gray-800 text-white text-sm"
+          >
+            <AiOutlineBarcode />
+            Leer Pedidos
+          </button>
+        ) : null}
       </div>
       <Modal
         open={showModal}
@@ -1531,44 +1615,133 @@ const CampaignDetails = () => {
           </div>
         </div>
       </Modal>
-      {/* modal send en camino*/}
+      {/* modal send recepcionado*/}
       <Modal
-        open={isModalOpenSendCamino}
-        onCancel={() => setIsModalOpenSendCamino(false)}
+        open={isModalOpenSendStatus}
+        onCancel={() => setIsModalOpenSendStatus(false)}
         footer={null}
         width="90vw"
-        title={"Aqui completaras la data a los codigos precargados"}
+        title={
+          "Esta seccion es para cambiar el status de tracking de pedidos masivos"
+        }
       >
         <div className="w-full">
-          {loadingSendCamino ? (
+          {loadingPedidosSendStatus ? (
             <div className="w-full h-full z-50 absolute top-0 right-0 left-0 bottom-0 bg-primary text-white flex items-center justify-center gap-3">
-              <Spin /> <h1>Enviando productos a ruta</h1>
+              <Spin /> <h1>Tracking: cambiando status de pedidos</h1>
             </div>
           ) : null}
+          <div className="flex gap-4 mb-4">
+            <Select
+              placeholder="Departamento"
+              className="w-1/3"
+              value={filtroDepartamentoSendStatus}
+              onChange={(value) => {
+                setFiltroDepartamentoSendStatus(value);
+                setFiltroProvinciaSendStatus(null);
+                setFiltroDistritoSendStatus(null);
+              }}
+              allowClear
+            >
+              {departamentosSendStatus.map((dep) => (
+                <Option key={dep} value={dep}>
+                  {dep}
+                </Option>
+              ))}
+            </Select>
+
+            <Select
+              placeholder="Provincia"
+              className="w-1/3"
+              value={filtroProvinciaSendStatus}
+              onChange={(value) => {
+                setFiltroProvinciaSendStatus(value);
+                setFiltroDistritoSendStatus(null);
+              }}
+              allowClear
+              disabled={!filtroDepartamentoSendStatus}
+            >
+              {provinciasSendStatus.map((prov) => (
+                <Option key={prov} value={prov}>
+                  {prov}
+                </Option>
+              ))}
+            </Select>
+
+            <Select
+              placeholder="Distrito"
+              className="w-1/3"
+              value={filtroDistritoSendStatus}
+              onChange={setFiltroDistritoSendStatus}
+              allowClear
+              disabled={!filtroProvinciaSendStatus}
+            >
+              {distritosSendStatus.map((dist) => (
+                <Option key={dist} value={dist}>
+                  {dist}
+                </Option>
+              ))}
+            </Select>
+          </div>
+          {/* Botón Seleccionar Todos */}
+          <div className="mb-2">
+            <Button onClick={handleSeleccionarTodosSendStatus}>
+              Seleccionar Todos
+            </Button>
+          </div>
           <div className="z-40 flex flex-col gap-3">
             <div className="flex gap-3 justify-between">
               {/* 🟢 Panel Izquierdo - Pedidos sin asignar */}
               <Table
                 className="w-full overflow-auto"
-                dataSource={pedidosRecepcionadosSend}
+                dataSource={pedidosFiltradosSendStatus}
                 columns={[
                   { title: "ID solicitante", dataIndex: "idSolicitante" },
                   { title: "Solicitante", dataIndex: "nombreSolicitante" },
-                  { title: "Numero de cajas", dataIndex: "numCajas" },
+
                   { title: "departamento", dataIndex: "departamento" },
                   { title: "provincia", dataIndex: "provincia" },
                   { title: "distrito", dataIndex: "distrito" },
                   { title: "ubigeo", dataIndex: "ubigeo" },
+                  {
+                    title: "Seleccionar",
+                    key: "seleccionar",
+                    render: (_, record) => (
+                      <Checkbox
+                        checked={pedidosSeleccionadosSendStatus.includes(
+                          record.id
+                        )}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setPedidosSeleccionadosSendStatus([
+                              ...pedidosSeleccionadosSendStatus,
+                              record.id,
+                            ]);
+                          } else {
+                            setPedidosSeleccionadosSendStatus(
+                              pedidosSeleccionadosSendStatus.filter(
+                                (id) => id !== record.id
+                              )
+                            );
+                          }
+                        }}
+                      />
+                    ),
+                  },
                 ]}
                 rowKey="id"
               />
             </div>
 
-            <Button onClick={actualizarEncaminoAll}>Subir Data</Button>
+            <button
+              className="px-3 py-2 bg-primary text-white font-bold text-sm"
+              onClick={actualizarStatusPedidosMasive}
+            >
+              Enviar
+            </button>
           </div>
         </div>
       </Modal>
-
       <ImageUploadModal
         isOpen={modalVisibleMorePhotos}
         onClose={() => setModalVisibleMorePhotos(false)}
@@ -1795,6 +1968,36 @@ const CampaignDetails = () => {
             repartidores={repartidores}
             fetchCampaignData={fetchCampaignData}
           />
+          <div className="flex gap-3 my-4 w-full overflow-x-auto">
+            <button
+              onClick={() => handlePedidosSendStatus("registrado")} // el status de los pedidos cambian de registrado a recepcionado
+              className="text-nowrap rounded flex items-center gap-3 px-3 py-2 bg-sky-500 text-white"
+            >
+              <FaInbox />
+              Recepcionar pedidos
+            </button>
+            <button
+              onClick={() => handlePedidosSendStatus("recepcionado")} // el status de los pedidos cambian de recepcionado a en ruta(en camino)
+              className="text-nowrap rounded flex items-center gap-3 px-3 py-2 bg-blue-600 text-white"
+            >
+              <FaTruck />
+              Enviar a ruta
+            </button>
+            <button
+              onClick={() => setShowAsignar(true)} //tiene la propia logica para que el status cambie de ruta(en camino) a almacen
+              className="text-nowrap rounded flex items-center gap-3 px-3 py-2 bg-indigo-500 text-white"
+            >
+              <FaUsers />
+              Asignar Pedidos
+            </button>
+            <button
+              onClick={() => handlePedidosSendStatus("en almacen")} // el status de los pedidos cambian de almacen a entregado
+              className="text-nowrap rounded flex items-center gap-3 px-3 py-2 bg-emerald-500 text-white"
+            >
+              <FaBoxOpen />
+              Entregar
+            </button>
+          </div>
           <Table
             className="mt-8"
             dataSource={visiblePedidos}
