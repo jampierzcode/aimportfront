@@ -22,6 +22,7 @@ import {
   FaFileExcel,
   FaInbox,
   FaTruck,
+  FaTruckLoading,
   FaUsers,
 } from "react-icons/fa";
 import {
@@ -39,6 +40,7 @@ import ModalAsignarPedidos from "../../components/rolSuperAdmin/ModalAsignarPedi
 import { BiBarcode, BiLineChart } from "react-icons/bi";
 import { FiRefreshCw } from "react-icons/fi";
 import BarcodeScannerImport from "../../components/rolSuperAdmin/BarCodeScannerImport";
+import dayjs from "dayjs";
 const { confirm } = Modal;
 
 const { Option } = Select;
@@ -460,6 +462,10 @@ const CampaignDetails = () => {
   };
 
   // modal estados modales masivos
+  const [fechaSendStatus, setFechaSendStatus] = useState(null);
+  const [tipoFechaSendStatus, setTipoFechaSendStatus] =
+    useState("FECHA ACTUAL");
+
   const [isModalOpenSendStatus, setIsModalOpenSendStatus] = useState(false); //booleano para abrir modal donde se seleccionan de los pedidos filtrados para cambiar status
   const [loadingPedidosSendStatus, setLoadingPedidosSendStatus] =
     useState(false); //carga de envio de pedidos seleccionados a cambiar status
@@ -502,7 +508,11 @@ const CampaignDetails = () => {
     setPedidosFiltradosSendStatus(filtrados);
   };
   const handleSeleccionarTodosSendStatus = () => {
-    const ids = pedidosFiltradosSendStatus.map((pedido) => pedido.id);
+    const ids =
+      pedidosSeleccionadosSendStatus.length > 0
+        ? []
+        : pedidosFiltradosSendStatus.map((pedido) => pedido.id);
+
     setPedidosSeleccionadosSendStatus(ids);
   };
 
@@ -537,6 +547,58 @@ const CampaignDetails = () => {
     const pedidosFiltrados = pedidos.filter((p) => p.status === filter);
     setPedidosSendStatus(pedidosFiltrados);
   };
+  const [pedidosEnAlmacen, setPedidosEnAlmacen] = useState([]);
+  const handleShowAsignar = () => {
+    const pedidosFiltrados = pedidos.filter((p) => p.status === "en almacen");
+    setPedidosEnAlmacen(pedidosFiltrados);
+    setShowAsignar(true);
+  };
+
+  const pintarSendStatus = () => {
+    let statusNew;
+    switch (filterSendStatusChange) {
+      case "registrado":
+        statusNew = "recepcionado";
+        return (
+          <div className="w-full max-w-max text-xl text-nowrap rounded flex items-center gap-3 px-3 py-2 bg-gray-200 text-gray-600">
+            <FaInbox />
+            Recoger pedidos
+          </div>
+        );
+
+        break;
+      case "recepcionado":
+        statusNew = "en camino"; //en ruta(en camino)
+        return (
+          <div className="w-full max-w-max text-xl text-nowrap rounded flex items-center gap-3 px-3 py-2 bg-gray-200 text-gray-600">
+            <FaTruck />
+            Enviar a ruta
+          </div>
+        );
+        break;
+      case "en camino":
+        statusNew = "en almacen"; //en almacen destino
+        return (
+          <div className="w-full max-w-max text-xl text-nowrap rounded flex items-center gap-3 px-3 py-2 bg-gray-200 text-gray-600">
+            <FaTruckLoading />
+            Recepcionado en destino
+          </div>
+        );
+        break;
+      case "en almacen":
+        statusNew = "entregado"; //entregado
+        return (
+          <div className="w-full max-w-max text-xl text-nowrap rounded flex items-center gap-3 px-3 py-2 bg-gray-200 text-gray-600">
+            <FaBoxOpen />
+            Entregar
+          </div>
+        );
+        break;
+
+      default:
+        break;
+    }
+  };
 
   const actualizarStatusPedidosMasive = async () => {
     //funcion que envia los pedidos seleccionados del filtro para cambiar status
@@ -544,6 +606,15 @@ const CampaignDetails = () => {
     if (pedidosSeleccionadosSendStatus.length === 0) {
       message.warning(
         "No hay pedidos seleccionados para enviar con status:recepcionado"
+      );
+      return;
+    }
+    if (
+      tipoFechaSendStatus === "FECHA ESPECIFICA" &&
+      fechaSendStatus === null
+    ) {
+      message.warning(
+        "Ha seleccionado una fecha especifica, porfavor llenar el campo de fecha + hora"
       );
       return;
     }
@@ -557,6 +628,9 @@ const CampaignDetails = () => {
         case "recepcionado":
           statusNew = "en camino"; //en ruta(en camino)
           break;
+        case "en camino":
+          statusNew = "en almacen"; //en ruta(en camino)
+          break;
         case "en almacen":
           statusNew = "entregado"; //en ruta(en camino)
           break;
@@ -564,23 +638,31 @@ const CampaignDetails = () => {
         default:
           break;
       }
-      message.warning("en mantenimiento este modulo");
-      return;
 
-      const response = await fetch(`${apiUrl}/pedidosUpdateInfoMasive`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      const response = await axios.post(
+        `${apiUrl}/pedidosTracking`,
+        {
           pedidos: pedidosSeleccionadosSendStatus,
           status: statusNew,
-        }),
-      });
+          fecha:
+            fechaSendStatus !== null
+              ? dayjs(fechaSendStatus).format("YYYY-MM-DD HH:mm:ss")
+              : null,
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${auth.token}`,
+          },
+        }
+      );
       console.log(response);
       setLoadingPedidosSendStatus(false);
-      message.success("Pedidos actualizados correctamente en camino");
+      message.success(`Pedidos actualizados correctamente ${statusNew}`);
 
       await fetchCampaignData();
       setIsModalOpenSendStatus(false);
+      setFechaSendStatus(null);
     } catch (error) {
       message.error("Ocurrio un error inesperado, contactar con proveedor");
     }
@@ -1621,16 +1703,20 @@ const CampaignDetails = () => {
         onCancel={() => setIsModalOpenSendStatus(false)}
         footer={null}
         width="90vw"
-        title={
-          "Esta seccion es para cambiar el status de tracking de pedidos masivos"
-        }
       >
         <div className="w-full">
+          {pintarSendStatus()}
+
+          <p className="text-sm">
+            Esta seccion es para cambiar el status de tracking de pedidos
+            masivos
+          </p>
           {loadingPedidosSendStatus ? (
             <div className="w-full h-full z-50 absolute top-0 right-0 left-0 bottom-0 bg-primary text-white flex items-center justify-center gap-3">
               <Spin /> <h1>Tracking: cambiando status de pedidos</h1>
             </div>
           ) : null}
+          <h1 className="text-sm font-bold">Filtros de busqueda</h1>
           <div className="flex gap-4 mb-4">
             <Select
               placeholder="Departamento"
@@ -1683,12 +1769,39 @@ const CampaignDetails = () => {
               ))}
             </Select>
           </div>
-          {/* Botón Seleccionar Todos */}
-          <div className="mb-2">
-            <Button onClick={handleSeleccionarTodosSendStatus}>
-              Seleccionar Todos
-            </Button>
+          <div className="w-full">
+            <h1 className="text-sm font-bold">Tipo de fecha</h1>
+            <div className="w-full flex gap-4">
+              <select
+                className="px-3 py-2 bg-gray-200 font-bold text-sm"
+                name="seelct_fecha"
+                id="select_fecha"
+                value={tipoFechaSendStatus}
+                onChange={(e) => {
+                  setTipoFechaSendStatus(e.target.value);
+                  setFechaSendStatus(null);
+                }}
+              >
+                <option value="FECHA ACTUAL">FECHA ACTUAL</option>
+                <option value="FECHA ESPECIFICA">FECHA ESPECIFICA</option>
+              </select>
+              {tipoFechaSendStatus === "FECHA ESPECIFICA" ? (
+                <input
+                  className="px-3 py-2 bg-gray-200 font-bold text-sm"
+                  type="datetime-local"
+                  value={fechaSendStatus ? fechaSendStatus : ""}
+                  onChange={(e) => setFechaSendStatus(e.target.value)}
+                />
+              ) : null}
+              <div className="mb-2">
+                <Button onClick={handleSeleccionarTodosSendStatus}>
+                  Seleccionar / Deseleccionar Todos
+                </Button>
+              </div>
+            </div>
           </div>
+          {/* Botón Seleccionar Todos */}
+
           <div className="z-40 flex flex-col gap-3">
             <div className="flex gap-3 justify-between">
               {/* 🟢 Panel Izquierdo - Pedidos sin asignar */}
@@ -1964,7 +2077,7 @@ const CampaignDetails = () => {
           <ModalAsignarPedidos
             open={showAsignar}
             onClose={setShowAsignar}
-            pedidos={pedidos}
+            pedidos={pedidosEnAlmacen}
             repartidores={repartidores}
             fetchCampaignData={fetchCampaignData}
           />
@@ -1974,7 +2087,7 @@ const CampaignDetails = () => {
               className="text-nowrap rounded flex items-center gap-3 px-3 py-2 bg-sky-500 text-white"
             >
               <FaInbox />
-              Recepcionar pedidos
+              Recoger pedidos
             </button>
             <button
               onClick={() => handlePedidosSendStatus("recepcionado")} // el status de los pedidos cambian de recepcionado a en ruta(en camino)
@@ -1984,14 +2097,21 @@ const CampaignDetails = () => {
               Enviar a ruta
             </button>
             <button
-              onClick={() => setShowAsignar(true)} //tiene la propia logica para que el status cambie de ruta(en camino) a almacen
+              onClick={() => handlePedidosSendStatus("en camino")} // el status de los pedidos cambian de en ruta(camino) a en almacen(destino)
+              className="text-nowrap rounded flex items-center gap-3 px-3 py-2 bg-blue-900 text-white"
+            >
+              <FaTruckLoading />
+              Recepcionar en destino
+            </button>
+            <button
+              onClick={() => handleShowAsignar()} //tiene la propia logica para que el status cambie de ruta(en camino) a almacen
               className="text-nowrap rounded flex items-center gap-3 px-3 py-2 bg-indigo-500 text-white"
             >
               <FaUsers />
               Asignar Pedidos
             </button>
             <button
-              onClick={() => handlePedidosSendStatus("en almacen")} // el status de los pedidos cambian de almacen a entregado
+              onClick={() => handlePedidosSendStatus("en reparto")} // el status de los pedidos cambian de almacen a entregado
               className="text-nowrap rounded flex items-center gap-3 px-3 py-2 bg-emerald-500 text-white"
             >
               <FaBoxOpen />
