@@ -822,7 +822,15 @@ const CampaignDetails = () => {
   // useEffect para manejar el filtrado y paginación
   useEffect(() => {
     applyFilters(); // Aplicar filtros cuando cambian filtros de texto o ubicación
-  }, [searchTerm, searchField, departamento, provincia, distrito]);
+  }, [
+    pedidos,
+    visiblePedidos,
+    searchTerm,
+    searchField,
+    departamento,
+    provincia,
+    distrito,
+  ]);
 
   const departamentosUnicos = useMemo(() => {
     const set = new Set();
