@@ -400,6 +400,7 @@ const CampaignDetails = () => {
   };
 
   // ✅ Enviar pedidos a la API
+  const [loadingSubirPedidos, setLoadingSubirPedidos] = useState(false);
   const subirPedidos = async () => {
     if (pedidosExcel.length > 0) {
       message.warning("Aún hay pedidos sin asignar");
@@ -409,19 +410,26 @@ const CampaignDetails = () => {
       message.warning("No se subio ningun archivo excel");
       return;
     }
+    try {
+      setLoadingSubirPedidos(true);
 
-    const response = await fetch(`${apiUrl}/pedidosMasiveByCampaign`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ campaign_id: id, pedidos: asignados }),
-    });
-    console.log(response);
+      const response = await fetch(`${apiUrl}/pedidosMasiveByCampaign`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ campaign_id: id, pedidos: asignados }),
+      });
+      console.log(response);
 
-    message.success("Pedidos enviados correctamente");
-    setPedidosExcel([]);
-    setAsignados([]);
-    await fetchCampaignData();
-    setModalVisible(false);
+      message.success("Pedidos enviados correctamente");
+      setPedidosExcel([]);
+      setAsignados([]);
+      await fetchCampaignData();
+      setModalVisible(false);
+      setLoadingSubirPedidos(false);
+    } catch (error) {
+      message.error("Ocurrio un error por favor contactar con soporte");
+      setLoadingSubirPedidos(false);
+    }
   };
   const [loadingRecogerPedidosCodes, setloadingRecogerPedidosCodes] =
     useState(false);
@@ -581,11 +589,11 @@ const CampaignDetails = () => {
         return (
           <div className="w-full max-w-max text-xl text-nowrap rounded flex items-center gap-3 px-3 py-2 bg-gray-200 text-gray-600">
             <FaTruckLoading />
-            Recepcionado en destino
+            Recepcionar en destino
           </div>
         );
         break;
-      case "en almacen":
+      case "en reparto":
         statusNew = "entregado"; //entregado
         return (
           <div className="w-full max-w-max text-xl text-nowrap rounded flex items-center gap-3 px-3 py-2 bg-gray-200 text-gray-600">
@@ -905,7 +913,6 @@ const CampaignDetails = () => {
   const handleMorePhotos = () => {
     setModalVisibleMorePhotos(true);
   };
-
   const [isOpenMultimedia, setIsOpenMultimedia] = useState(false);
   const [multimedia, setMultimedia] = useState([]);
 
@@ -978,7 +985,6 @@ const CampaignDetails = () => {
                 Entregar
               </button>
             ) : null}
-            {}
           </>
         );
       },
@@ -1206,9 +1212,9 @@ const CampaignDetails = () => {
         "Destino - Departamento": pedido.destino?.department || "",
         "Destino - Provincia": pedido.destino?.province || "",
         "Destino - Distrito": pedido.destino?.district || "",
-        ...(entrega && {
-          "Fecha de Entrega": new Date(entrega.createdAt).toLocaleString(),
-        }),
+        "Fecha de Entrega": entrega
+          ? new Date(entrega.createdAt).toLocaleString()
+          : "",
       };
     });
 
@@ -1574,7 +1580,11 @@ const CampaignDetails = () => {
         footer={null}
         width="90vw"
       >
-        {" "}
+        {loadingSubirPedidos ? (
+          <div className="w-full h-full z-50 absolute top-0 right-0 left-0 bottom-0 bg-primary text-white flex items-center justify-center gap-3">
+            <Spin /> <h1>Subiendo pedidos</h1>
+          </div>
+        ) : null}
         <div className="flex flex-col gap-3">
           <input type="file" onChange={handleFileUpload} />
           <div className="flex gap-3 justify-between">
@@ -1622,7 +1632,9 @@ const CampaignDetails = () => {
             />
           </div>
 
-          <Button onClick={subirPedidos}>Subir Data</Button>
+          <Button disabled={loadingSubirPedidos} onClick={subirPedidos}>
+            Subir Data
+          </Button>
         </div>
       </Modal>
       {/* modal de completar data */}
@@ -2035,6 +2047,9 @@ const CampaignDetails = () => {
                   className="border border-gray-300 rounded px-3 py-2 text-sm w-full"
                 >
                   <option value="">Seleccionar estado</option>
+                  <option value="recepcionado">Recepcionado</option>
+                  <option value="en camino">En camino(ruta)</option>
+                  <option value="en almacen">En almacen(destino)</option>
                   <option value="en reparto">En Reparto</option>
                   <option value="entregado">Entregado</option>
                 </select>

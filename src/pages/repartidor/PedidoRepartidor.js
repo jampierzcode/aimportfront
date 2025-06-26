@@ -13,11 +13,12 @@ import {
   Checkbox,
   Image,
 } from "antd";
+import { ExclamationCircleOutlined } from "@ant-design/icons";
 import { AiOutlineSearch } from "react-icons/ai";
 import { useAuth } from "../../components/AuthContext";
 import ImageUploadModal from "../../components/rolRepartidor/ImageUploadModal";
 import { FiRefreshCw } from "react-icons/fi";
-
+const { confirm } = Modal;
 const { Option } = Select;
 const PedidoRepartidor = () => {
   const { auth } = useAuth();
@@ -32,7 +33,6 @@ const PedidoRepartidor = () => {
   const [visiblePedidos, setVisiblePedidos] = useState([]);
 
   // pedidos que se suben al excel useState
-  const [modalVisible, setModalVisible] = useState(false);
   const [modalVisibleMorePhotos, setModalVisibleMorePhotos] = useState(false);
   const [
     pedidoIdParaActualizarMultimedia,
@@ -101,66 +101,6 @@ const PedidoRepartidor = () => {
     }
   };
 
-  // ✅ Enviar pedidos a la API
-  const handleUpload = async (files) => {
-    const formData = new FormData();
-    const searchPedido = pedidos.find((p) => p.id === pedidoId);
-
-    formData.append("folder", `${searchPedido.idSolicitante}`);
-
-    files.forEach((file) => {
-      formData.append("files[]", file);
-    });
-
-    try {
-      const response = await axios.post(`${apiUrlUpload}/index.php`, formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
-      const data = response.data;
-      console.log(data);
-      if (data.success) {
-        console.log(data.files);
-        const responseEnviiosMultimedia = await axios.post(
-          `${apiUrl}/pedidosMultimedia`,
-          { files: data.files, pedido_id: pedidoId },
-          {
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${auth.token}`,
-            },
-          }
-        );
-        console.log(response);
-        const dataMultimedia = responseEnviiosMultimedia.data;
-        if (dataMultimedia.status === "success") {
-          message.success("Se subieron las imagenes correctamente");
-          const responseUpdatePedido = await axios.put(
-            `${apiUrl}/pedidos/${pedidoId}`,
-            { status: "entregado" },
-            {
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${auth.token}`,
-              },
-            }
-          );
-          const dataUpdate = responseUpdatePedido.data;
-          if ((dataUpdate.status = "success")) {
-            await fetchPedidosAsignados();
-            message.success("Se entrego correctamente el pedido");
-            setModalVisible(false);
-          }
-        } else {
-          new Error("error de compilacion");
-        }
-      }
-    } catch (error) {
-      console.error("Error al subir imágenes:", error);
-      message.error("Ocurrió un error al subir las imágenes.");
-    }
-  };
   // ✅ Subir mas fotos a la API
   const handleUploadMorePhotos = async (files) => {
     const formData = new FormData();
@@ -345,16 +285,45 @@ const PedidoRepartidor = () => {
     fetchPedidosAsignados();
   }, [0]);
 
-  const handleEntregarPedido = (id) => {
-    setPedidoId(id);
-    setModalVisible(true);
+  const sendPedidoEntregar = async (id) => {
+    try {
+      const response = await axios.post(
+        `${apiUrl}/pedidoEntregar`,
+        { pedido_id: id },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${auth.token}`,
+          },
+        }
+      );
+      console.log(response);
+      const data = response.data;
+      if (data.status === "success") {
+        await fetchCampaignData();
+      } else {
+        new Error("error de compilacion");
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  };
+  const handleEntregar = async (id) => {
+    confirm({
+      title: "Entregar pedido",
+      icon: <ExclamationCircleOutlined />,
+      content: "Esta seguro de entregar este pedido?",
+      okText: "Sí",
+      cancelText: "No",
+      async onOk() {
+        // 👇 Aquí va tu lógica de subida de pedidos cargados
+        console.log("Subiendo pedidos cargados...");
+        await sendPedidoEntregar(id);
+      },
+    });
   };
   const handleMorePhotos = () => {
     setModalVisibleMorePhotos(true);
-  };
-  const handleCancelEntrega = (id) => {
-    setPedidoId(null);
-    setModalVisible(false);
   };
   const [isOpenMultimedia, setIsOpenMultimedia] = useState(false);
   const [multimedia, setMultimedia] = useState([]);
@@ -373,29 +342,27 @@ const PedidoRepartidor = () => {
       title: "Acciones",
       key: "acciones",
       render: (_, record) => {
-        switch (record.status) {
-          case "en reparto":
-            return (
+        return (
+          <>
+            <button
+              onClick={() => handleVerFotos(record.multimedia, record.id)}
+              className="px-3 py-2 rounded text-white bg-gray-700"
+            >
+              Ver fotos: {record?.multimedia?.length}
+            </button>
+            {record.status === "en reparto" ? (
               <button
-                onClick={() => handleEntregarPedido(record.id)}
+                onClick={() => handleEntregar(record.id)}
                 className="px-3 py-2 rounded text-white bg-primary"
               >
                 Entregar
               </button>
-            );
-
-          default:
-            return (
-              <button
-                onClick={() => handleVerFotos(record.multimedia, record.id)}
-                className="px-3 py-2 rounded text-white bg-gray-700"
-              >
-                Ver fotos: {record?.multimedia?.length}
-              </button>
-            );
-        }
+            ) : null}
+          </>
+        );
       },
     },
+
     {
       title: "ID Pedido",
       dataIndex: "idSolicitante",
@@ -508,11 +475,7 @@ const PedidoRepartidor = () => {
           </div>
         </div>
       </div>
-      <ImageUploadModal
-        isOpen={modalVisible}
-        onClose={() => handleCancelEntrega()}
-        onUpload={handleUpload}
-      />
+
       <ImageUploadModal
         isOpen={modalVisibleMorePhotos}
         onClose={() => setModalVisibleMorePhotos(false)}
