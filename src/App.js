@@ -29,6 +29,7 @@ import ExcelUpload from "./pages/superadmin/ExcelUpload";
 import PedidosCliente from "./pages/cliente/Pedidos";
 import CampaignDetailsCliente from "./pages/cliente/CampaignDetail";
 import SedesManager from "./pages/superadmin/SedesManager";
+import CampaignRepartidor from "./pages/repartidor/Campaigns";
 
 function App() {
   return (
@@ -86,7 +87,17 @@ function App() {
           />
           {/* RUTAS PARA USUARIO REPARTIDOR */}
           <Route
-            path="/repartidor/pedidos"
+            path="/repartidor/campaigns"
+            element={
+              <PrivateRoute roles={["repartidor"]}>
+                <LayoutRepartidor>
+                  <CampaignRepartidor />
+                </LayoutRepartidor>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/repartidor/campaigns/:id"
             element={
               <PrivateRoute roles={["repartidor"]}>
                 <LayoutRepartidor>
@@ -95,6 +106,7 @@ function App() {
               </PrivateRoute>
             }
           />
+
           {/* RUTAS PARA USUARIO CLIENTE */}
           <Route
             path="/cliente/pedidos"

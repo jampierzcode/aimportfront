@@ -31,7 +31,7 @@ const Sidebar = ({ open, setOpen }) => {
       items: [
         {
           title: "Mis Pedidos",
-          url: "/repartidor/pedidos",
+          url: "/repartidor/campaigns",
           icon: <FaTags />,
         },
       ],

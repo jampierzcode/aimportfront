@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import {
   Table,
@@ -22,7 +22,6 @@ const { confirm } = Modal;
 const { Option } = Select;
 const PedidoRepartidor = () => {
   const { auth } = useAuth();
-  const { id } = useParams();
 
   const [searchTerm, setSearchTerm] = useState("");
   const apiUrl = process.env.REACT_APP_API_URL;
@@ -225,7 +224,7 @@ const PedidoRepartidor = () => {
   // useEffect para manejar el filtrado y paginación
   useEffect(() => {
     applyFilters(); // Aplicar filtros cuando cambian filtros de texto o ubicación
-  }, [searchTerm, searchField, pedidos, departamento, provincia, distrito]);
+  }, [searchTerm, searchField, departamento, provincia, distrito]);
 
   const departamentosUnicos = useMemo(() => {
     const set = new Set();
@@ -263,17 +262,14 @@ const PedidoRepartidor = () => {
       }
     }
   }, [pedidos, pedidoIdParaActualizarMultimedia]);
-  const [campaign, setCampaign] = useState(null);
+
   const fetchPedidosAsignados = async () => {
     try {
-      const response = await axios.get(`${apiUrl}/campaignAsignadaById/${id}`, {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${auth.token}`,
-        },
-      });
-      setCampaign(response.data);
-      const pedidosAsignados = response.data.pedidos;
+      const response = await axios.get(
+        `${apiUrl}/pedidoByRepartidor/${auth.user.id}`
+      );
+      console.log(response);
+      const pedidosAsignados = response.data.map((p) => p.pedido);
 
       setPedidos(pedidosAsignados);
       setVisiblePedidos(pedidosAsignados);
@@ -457,11 +453,9 @@ const PedidoRepartidor = () => {
   return (
     <div>
       <div className="flex justify-between gap-3">
-        <div>
-          <h2 className="text-3xl">
-            <b>Campaña: {campaign?.name}</b>
-          </h2>
-        </div>
+        <h2 className="text-2xl">
+          <b>Mis pedidos</b>
+        </h2>
         <div className="flex gap-4">
           <div className="box px-3 py-2 rounded text-sm font-bold bg-primary text-white">
             Total asignados <span>{pedidos.length}</span>
@@ -580,9 +574,6 @@ const PedidoRepartidor = () => {
         <Spin size="large" />
       ) : (
         <div>
-          <h2 className="text-2xl">
-            <b>Mis pedidos</b>
-          </h2>
           <h3 className="text-xs mb-6">Puedes ver todos tus pedidos aquí</h3>
           <div className="flex flex-col md:flex-row gap-4 mb-4">
             <Select
