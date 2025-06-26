@@ -300,7 +300,7 @@ const PedidoRepartidor = () => {
       console.log(response);
       const data = response.data;
       if (data.status === "success") {
-        await fetchCampaignData();
+        await fetchPedidosAsignados();
       } else {
         new Error("error de compilacion");
       }
