@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import * as XLSX from "xlsx";
 import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import {
@@ -14,10 +15,11 @@ import {
   Image,
 } from "antd";
 import { ExclamationCircleOutlined } from "@ant-design/icons";
-import { AiOutlineSearch } from "react-icons/ai";
+import { AiOutlineDownload, AiOutlineSearch } from "react-icons/ai";
 import { useAuth } from "../../components/AuthContext";
 import ImageUploadModal from "../../components/rolRepartidor/ImageUploadModal";
 import { FiRefreshCw } from "react-icons/fi";
+import EstadisticasModal from "../superadmin/EstadisticasModal";
 const { confirm } = Modal;
 const { Option } = Select;
 const PedidoRepartidor = () => {
@@ -453,6 +455,57 @@ const PedidoRepartidor = () => {
       },
     },
   ];
+  const exportToExcelReport = (pedidos) => {
+    const data = pedidos.map((pedido) => {
+      const entrega =
+        pedido.status === "entregado"
+          ? pedido.status_pedido.find((sp) => sp.status === "entregado")
+          : null;
+      const fecha_despacho = pedido.status_pedido.find(
+        (sp) => sp.status === "recepcionado"
+      );
+      return {
+        "Fecha de despacho": new Date(
+          fecha_despacho.createdAt
+        ).toLocaleString(),
+        "Nombre del Solicitante": pedido.nombreSolicitante,
+        "ID del Solicitante": pedido.idSolicitante,
+        Estado: pedido.status,
+        Dirección: pedido.direccion,
+        "Origen - Departamento": pedido.origen?.department || "",
+        "Origen - Provincia": pedido.origen?.province || "",
+        "Origen - Distrito": pedido.origen?.district || "",
+        "Destino - Departamento": pedido.departamento || "",
+        "Destino - Provincia": pedido.provincia || "",
+        "Destino - Distrito": pedido.distrito || "",
+        "Fecha de Entrega": entrega
+          ? new Date(entrega.createdAt).toLocaleString()
+          : "",
+      };
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(data);
+
+    // Autoajustar el ancho de columnas
+    const columnWidths = Object.keys(data[0]).map((key) => ({
+      wch:
+        Math.max(
+          key.length,
+          ...data.map((row) => (row[key] ? row[key].toString().length : 0))
+        ) + 2, // +2 para dejar algo de margen
+    }));
+    worksheet["!cols"] = columnWidths;
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Pedidos");
+
+    const excelBuffer = XLSX.write(workbook, {
+      bookType: "xlsx",
+      type: "array",
+    });
+    const blob = new Blob([excelBuffer], { type: "application/octet-stream" });
+    saveAs(blob, "pedidosdelrepartidor.xlsx");
+  };
 
   return (
     <div>
@@ -462,6 +515,7 @@ const PedidoRepartidor = () => {
             <b>Campaña: {campaign?.name}</b>
           </h2>
         </div>
+
         <div className="flex gap-4">
           <div className="box px-3 py-2 rounded text-sm font-bold bg-primary text-white">
             Total asignados <span>{pedidos.length}</span>
@@ -480,6 +534,16 @@ const PedidoRepartidor = () => {
             </span>
           </div>
         </div>
+      </div>
+      <div className="flex gap-3 mb-4 w-full overflow-x-auto">
+        <EstadisticasModal pedidos={pedidos} />
+        <button
+          onClick={() => exportToExcelReport(pedidos)}
+          className="bg-gray-800 text-white px-4 py-2 rounded flex gap-3 items-center"
+        >
+          <AiOutlineDownload />
+          Exportar
+        </button>
       </div>
 
       <ImageUploadModal

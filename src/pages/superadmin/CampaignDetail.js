@@ -1200,8 +1200,13 @@ const CampaignDetails = () => {
         pedido.status === "entregado"
           ? pedido.status_pedido.find((sp) => sp.status === "entregado")
           : null;
-
+      const fecha_despacho = pedido.status_pedido.find(
+        (sp) => sp.status === "recepcionado"
+      );
       return {
+        "Fecha de despacho": new Date(
+          fecha_despacho.createdAt
+        ).toLocaleString(),
         "Nombre del Solicitante": pedido.nombreSolicitante,
         "ID del Solicitante": pedido.idSolicitante,
         Estado: pedido.status,
@@ -1209,9 +1214,9 @@ const CampaignDetails = () => {
         "Origen - Departamento": pedido.origen?.department || "",
         "Origen - Provincia": pedido.origen?.province || "",
         "Origen - Distrito": pedido.origen?.district || "",
-        "Destino - Departamento": pedido.destino?.department || "",
-        "Destino - Provincia": pedido.destino?.province || "",
-        "Destino - Distrito": pedido.destino?.district || "",
+        "Destino - Departamento": pedido.departamento || "",
+        "Destino - Provincia": pedido.provincia || "",
+        "Destino - Distrito": pedido.distrito || "",
         "Fecha de Entrega": entrega
           ? new Date(entrega.createdAt).toLocaleString()
           : "",
