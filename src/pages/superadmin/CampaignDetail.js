@@ -939,6 +939,29 @@ const CampaignDetails = () => {
       console.log(error);
     }
   };
+  const sendDevolverEntrega = async (id) => {
+    try {
+      const response = await axios.post(
+        `${apiUrl}/devolverEntrega`,
+        { pedido_id: id },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${auth.token}`,
+          },
+        }
+      );
+      console.log(response);
+      const data = response.data;
+      if (data.status === "success") {
+        await fetchCampaignData();
+      } else {
+        new Error("error de compilacion");
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  };
   const handleEntregar = async (id) => {
     confirm({
       title: "Entregar pedido",
@@ -950,6 +973,20 @@ const CampaignDetails = () => {
         // 👇 Aquí va tu lógica de subida de pedidos cargados
         console.log("Subiendo pedidos cargados...");
         await sendPedidoEntregar(id);
+      },
+    });
+  };
+  const handleDevolverEntrega = async (id) => {
+    confirm({
+      title: "Devolver entrega a pedido",
+      icon: <ExclamationCircleOutlined />,
+      content: "Esta seguro de regresar esta entrega a reparto?",
+      okText: "Sí",
+      cancelText: "No",
+      async onOk() {
+        // 👇 Aquí va tu lógica de subida de pedidos cargados
+        console.log("Subiendo pedidos cargados...");
+        await sendDevolverEntrega(id);
       },
     });
   };
@@ -983,6 +1020,14 @@ const CampaignDetails = () => {
                 className="px-3 py-2 rounded text-white bg-primary"
               >
                 Entregar
+              </button>
+            ) : null}
+            {record.status === "entregado" ? (
+              <button
+                onClick={() => handleDevolverEntrega(record.id)}
+                className="px-3 py-2 rounded text-white bg-yellow-600"
+              >
+                Devolver a reparto
               </button>
             ) : null}
           </>
