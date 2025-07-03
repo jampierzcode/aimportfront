@@ -71,6 +71,13 @@ const Usuarios = () => {
     rol_id: 2,
     sede_id: 1,
   });
+  const [clienteCreate, setClienteCreate] = useState({
+    razon_social: "",
+    ruc: "",
+    usuario_id: null,
+    direccion: "",
+  });
+  const [isCliente, setIsCliente] = useState(false);
   const [openPassword, setOpenPassword] = useState(false);
   const [editGenerate, setEditGenerate] = useState(false);
   // const changeGeneratePassword = () => {
@@ -134,14 +141,26 @@ const Usuarios = () => {
             Authorization: `Bearer ${auth.token}`,
           },
         });
-        console.log(response);
         const data = response.data;
-        if (data.status === "success") {
-          setUsuarios(data.data);
-          setFilterUsuarios(data.data);
-        } else {
-          new Error("error de compilacion");
-        }
+
+        resolve(data);
+      } catch (error) {
+        reject(error);
+        console.error("Upload error:", error);
+      }
+    });
+  };
+  const createCliente = async (newCliente) => {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const response = await axios.post(`${apiUrl}/clientes`, newCliente, {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${auth.token}`,
+          },
+        });
+        const data = response.data;
+
         resolve(data);
       } catch (error) {
         reject(error);
@@ -150,20 +169,55 @@ const Usuarios = () => {
     });
   };
   const handleOkCreate = async () => {
+    if (isCliente) {
+      if (
+        clienteCreate.razon_social === "" ||
+        clienteCreate.ruc === "" ||
+        clienteCreate.direccion === ""
+      ) {
+        message.warning(
+          "Estas creando un usuario del tipo cliente, porfavor debes registrar los datos de la empresa como RUC, RAZON SOCIAL y DIRECCION"
+        );
+        return;
+      }
+    }
     if (
-      usuarioCreate.name !== "" &&
-      usuarioCreate.email !== "" &&
-      usuarioCreate.sede_id !== "" &&
-      usuarioCreate.password !== ""
+      usuarioCreate.name === "" ||
+      usuarioCreate.email === "" ||
+      usuarioCreate.sede_id === "" ||
+      usuarioCreate.password === ""
     ) {
-      let uuid = generateRandomUuid(5);
-      setLoadingCreateUsuarios(true);
-      const newUsuario = { ...usuarioCreate };
-      newUsuario.uuid = uuid;
-      const userData = await createUsuario(newUsuario);
-      console.log(userData);
-      if (userData.status === "success") {
-        message.success("Se creo correctamente el usuario");
+      message.warning(
+        "Los Campos de nombre, email, sede y password deben estar llenos para poder crear al usuario"
+      );
+      return;
+    }
+    setLoadingCreateUsuarios(true);
+    let uuid = generateRandomUuid(5);
+    const newUsuario = { ...usuarioCreate };
+    newUsuario.uuid = uuid;
+    const userData = await createUsuario(newUsuario);
+    console.log(userData);
+    if (userData.status === "success") {
+      if (isCliente) {
+        const newCliente = { ...clienteCreate, usuario_id: userData.data.id };
+        const clienteData = await createCliente(newCliente);
+        if (clienteData.status === "success") {
+          message.success("Se creo correctamente el usuario cliente");
+          setUsuarioCreate({
+            ...usuarioCreate,
+            name: "",
+            email: "",
+          });
+          await buscarUsuarios();
+          setLoadingCreateUsuarios(false);
+        } else {
+          message.error(
+            "Ocurrio un error al crear el usuario, intentelo mas tarde"
+          );
+          setLoadingCreateUsuarios(false);
+        }
+      } else {
         setUsuarioCreate({
           ...usuarioCreate,
           name: "",
@@ -171,14 +225,9 @@ const Usuarios = () => {
         });
         await buscarUsuarios();
         setLoadingCreateUsuarios(false);
-      } else {
-        message.error(
-          "Ocurrio un error al crear el modelo, intentelo mas tarde"
-        );
-        setLoadingCreateUsuarios(false);
       }
     } else {
-      message.error("Ocurrio algo inesperado");
+      message.error("Ocurrio un error al crear el modelo, intentelo mas tarde");
       setLoadingCreateUsuarios(false);
     }
   };
@@ -203,7 +252,23 @@ const Usuarios = () => {
     setIsModalOpenCreate(true);
   };
   const handleUsuarioChangeCreate = (key, value) => {
+    if (key === "rol_id") {
+      let name_rol = roles.find((r) => r.id === value).name;
+      console.log(name_rol);
+      if (name_rol === "cliente") {
+        setIsCliente(true);
+      } else {
+        setIsCliente(false);
+      }
+    }
     setUsuarioCreate((prev) => {
+      const newModelo = { ...prev, [key]: value };
+
+      return newModelo;
+    });
+  };
+  const handleClienteChangeCreate = (key, value) => {
+    setClienteCreate((prev) => {
       const newModelo = { ...prev, [key]: value };
 
       return newModelo;
@@ -448,10 +513,7 @@ const Usuarios = () => {
 
     setVisibleUsuarios(paginatedUsuarios);
   };
-  const handleEditarProperty = (e, id) => {
-    e.stopPropagation();
-    console.log(id);
-  };
+
   const eliminar_property = (propiedad_id) => {
     return new Promise(async (resolve, reject) => {
       const response = await axios.delete(
@@ -480,13 +542,6 @@ const Usuarios = () => {
 
   return (
     <div className="w-full p-6 app-container-sections">
-      {/* <div className="w-full mb-4">
-        <EmpresaSelect
-          businessActive={businessActive}
-          setBusinessActive={setBusinessActive}
-          listBusiness={business}
-        />
-      </div> */}
       <div
         className="mb-[32px] flex items-center justify-between py-4 pr-4"
         style={{ background: "linear-gradient(90deg,#fff0,#fff)" }}
@@ -549,166 +604,7 @@ const Usuarios = () => {
           </button>
         </div>
       </div>
-      {/* <Modal
-        footer={null}
-        title="Editar modelo"
-        open={isModalOpenModelo}
-        onCancel={handleCancelModelo}
-      >
-        {activeModelo !== null ? (
-          <div className="model grid grid-cols-1 md:grid-cols-4 gap-3 mt-4 relative">
-            <div className="md:col-span-1">
-              <label className="text-sm w-full block font-medium  mb-4 ">
-                Subir Imagen
-              </label>
-              <div className="w-full flex items-center gap-3">
-                <LogoUpload
-                  setLogoFile={setLogoFile}
-                  logo={activeModelo.imagenUrl}
-                  setLogo={(imagenUrl) =>
-                    setActiveModelo((prevState) => ({
-                      ...prevState,
-                      imagenUrl,
-                    }))
-                  }
-                />
-              </div>
-            </div>
-            <div>
-              <label className="text-sm w-full block font-medium mb-4 ">
-                Categoría
-              </label>
-              <select
-                className="bg-gray-100 rounded px-3 py-2 w-full text-sm"
-                value={activeModelo.categoria}
-                onChange={(e) => handleModelChange("categoria", e.target.value)}
-              >
-                {categorias.map((categoria, index) => (
-                  <option key={index} value={categoria}>
-                    {categoria}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="text-sm w-full block font-medium mb-4 ">
-                Nombre
-              </label>
-              <input
-                className="bg-gray-100 rounded px-3 py-2 w-full text-sm"
-                type="text"
-                value={activeModelo.nombre}
-                onChange={(e) => handleModelChange("nombre", e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="text-sm w-full block font-medium mb-4 ">
-                Etapa
-              </label>
-              <select
-                name=""
-                id="estado_modelo"
-                className="bg-gray-100 rounded px-3 py-2 w-full text-sm"
-                value={activeModelo.etapa}
-                onChange={(e) => handleModelChange("etapa", e.target.value)}
-              >
-                <option value="En planos">En planos</option>
-                <option value="Construccion">Construccion</option>
-                <option value="Entregado">Entregado</option>
-              </select>
-            </div>
-            <div className="col-span-2">
-              <label className="text-sm w-full block font-medium mb-4 ">
-                Precio Desde
-              </label>
-              <div className="w-full flex">
-                <select
-                  value={activeModelo.moneda}
-                  onChange={(e) => handleModelChange("moneda", e.target.value)}
-                  name=""
-                  className="bg-gray-100 rounded px-3 py-2 text-sm"
-                  id="moneda"
-                >
-                  <option value="PEN">S/</option>
-                  <option value="DOLLAR">$</option>
-                </select>
-                <input
-                  className="bg-gray-100 rounded px-3 py-2 w-full text-sm"
-                  type="number"
-                  value={activeModelo.precio}
-                  onChange={(e) => handleModelChange("precio", e.target.value)}
-                />
-              </div>
-            </div>
-            <div>
-              <label className="text-sm w-full block font-medium mb-4">
-                Área Desde
-              </label>
-              <input
-                className="bg-gray-100 rounded px-3 py-2 w-full text-sm"
-                type="text"
-                value={activeModelo.area}
-                onChange={(e) => handleModelChange("area", e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="text-sm w-full block font-medium mb-4">
-                N° Habitaciones
-              </label>
-              <input
-                className="bg-gray-100 rounded px-3 py-2 w-full text-sm"
-                type="text"
-                value={activeModelo.habs}
-                onChange={(e) => handleModelChange("habs", e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="text-sm w-full block font-medium mb-4">
-                Garage
-              </label>
-              <Switch
-                value={Number(activeModelo.garage) === 1 ? true : false}
-                onChange={(e) => handleModelChange("garage", e)}
-              />
-            </div>
-            <div>
-              <label className="text-sm w-full block font-medium mb-4">
-                Baños
-              </label>
-              <input
-                className="bg-gray-100 rounded px-3 py-2 w-full text-sm"
-                type="text"
-                value={activeModelo.banios}
-                onChange={(e) => handleModelChange("banios", e.target.value)}
-              />
-            </div>
-          </div>
-        ) : null}
-        <div className="flex items-center gap-4 justify-end">
-          <button
-            disabled={verificarCambios()}
-            onClick={handleCancelModelo}
-            className={`rounded-full text-[12px] px-5 py-2   ${
-              verificarCambios()
-                ? "text-gray-500 bg-gray-300"
-                : "text-bold-font bg-white border-gray-300 border"
-            }`}
-          >
-            Cancelar
-          </button>
-          <button
-            disabled={verificarCambios()}
-            onClick={handleSave}
-            className={`rounded-full text-[12px] px-5 py-2 ${
-              verificarCambios()
-                ? "text-gray-500 bg-gray-300"
-                : "text-white bg-dark-purple"
-            } `}
-          >
-            Actualizar
-          </button>
-        </div>
-      </Modal> */}
+
       <Modal
         footer={null}
         title="Crear usuario"
@@ -725,6 +621,52 @@ const Usuarios = () => {
           ) : null}
 
           <div className="model grid grid-cols-1 gap-3 mt-4 relative">
+            {isCliente ? (
+              <>
+                <div>
+                  <label className="text-sm w-full block font-medium mb-4 ">
+                    Razon Social
+                  </label>
+                  <input
+                    placeholder="Ingresa la razon social Ejm: SA, SAC"
+                    className="bg-gray-100 rounded px-3 py-2 w-full text-sm"
+                    type="text"
+                    value={clienteCreate?.razon_social}
+                    onChange={(e) =>
+                      handleClienteChangeCreate("razon_social", e.target.value)
+                    }
+                  />
+                </div>
+                <div>
+                  <label className="text-sm w-full block font-medium mb-4 ">
+                    RUC
+                  </label>
+                  <input
+                    placeholder="Ingresa RUC de 11 digitos"
+                    className="bg-gray-100 rounded px-3 py-2 w-full text-sm"
+                    type="text"
+                    value={clienteCreate?.ruc}
+                    onChange={(e) =>
+                      handleClienteChangeCreate("ruc", e.target.value)
+                    }
+                  />
+                </div>
+                <div>
+                  <label className="text-sm w-full block font-medium mb-4 ">
+                    Direccion
+                  </label>
+                  <input
+                    placeholder="Ingresa la direccion"
+                    className="bg-gray-100 rounded px-3 py-2 w-full text-sm"
+                    type="text"
+                    value={clienteCreate?.direccion}
+                    onChange={(e) =>
+                      handleClienteChangeCreate("direccion", e.target.value)
+                    }
+                  />
+                </div>
+              </>
+            ) : null}
             <div>
               <label className="text-sm w-full block font-medium mb-4 ">
                 Nombres

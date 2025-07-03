@@ -95,7 +95,7 @@ const PedidoManager = () => {
       const response = await axios.get(`${apiUrl}/clientes`);
       const data = response.data;
       if (data.status == "success") {
-        setClientes(data.data); // Guardar campañas en el estado
+        setClientes(data.data); // Guardar clientes en el estado
       } else {
         new Error("Error de fetch");
       }

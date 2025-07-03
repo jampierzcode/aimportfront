@@ -33,6 +33,7 @@ const SedesManager = () => {
       if (data.status == "success") {
         const reformData = data.data.map((d) => {
           return {
+            id: d.id,
             direction: d.direction,
             name_referential: d.nameReferential,
             department: d.department,
@@ -61,7 +62,7 @@ const SedesManager = () => {
     try {
       await axios.post(`${apiUrl}/sedes`, sedeCreate);
       message.success("Sede creada correctamente");
-      fetchSedes();
+      await fetchSedes();
       setModalCreateVisible(false);
       setSedeCreate(initialSede);
     } catch (error) {
@@ -72,12 +73,14 @@ const SedesManager = () => {
   };
 
   const handleEdit = async () => {
-    if (!selectedId) return;
+    console.log("edit");
+    console.log(selectedId);
+    if (selectedId === null) return;
     setUpdating(true);
     try {
       await axios.put(`${apiUrl}/sedes/${selectedId}`, sedeEdit);
       message.success("Sede actualizada correctamente");
-      fetchSedes();
+      await fetchSedes();
       setModalEditVisible(false);
       setSedeEdit(initialSede);
       setSelectedId(null);
@@ -120,6 +123,7 @@ const SedesManager = () => {
       render: (_, record) => (
         <Button
           onClick={() => {
+            console.log(record);
             setSedeEdit(record);
             setSelectedId(record.id);
             setModalEditVisible(true);
