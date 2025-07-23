@@ -626,17 +626,17 @@ const PedidoRepartidor = () => {
             </button>
           </div>
           <div className="flex gap-3 flex-wrap">
-            {multimedia.map((m, index) => {
-              return (
-                <div className="m" key={index}>
-                  <img
-                    className="h-[200px] object-contain"
-                    src={m.url}
-                    alt=""
-                  />
-                </div>
-              );
-            })}
+            <Image.PreviewGroup>
+              {multimedia.map((m, index) => (
+                <Image
+                  key={index}
+                  src={m.url}
+                  alt={`Imagen ${index + 1}`}
+                  className="!h-[200px] !w-auto object-contain"
+                  style={{ maxHeight: 200 }}
+                />
+              ))}
+            </Image.PreviewGroup>
           </div>
         </div>
       </Modal>

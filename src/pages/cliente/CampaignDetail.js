@@ -3,7 +3,7 @@ import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
-import { Table, message, Spin, Modal, Select, Button } from "antd";
+import { Table, message, Spin, Modal, Select, Button, Image } from "antd";
 import { FaArrowLeft } from "react-icons/fa";
 import {
   AiOutlineDoubleRight,
@@ -670,17 +670,17 @@ const CampaignDetailsCliente = () => {
       >
         <div className="w-full">
           <div className="flex gap-3 flex-wrap">
-            {multimedia.map((m, index) => {
-              return (
-                <div className="m" key={index}>
-                  <img
-                    className="h-[200px] object-contain"
-                    src={m.url}
-                    alt=""
-                  />
-                </div>
-              );
-            })}
+            <Image.PreviewGroup>
+              {multimedia.map((m, index) => (
+                <Image
+                  key={index}
+                  src={m.url}
+                  alt={`Imagen ${index + 1}`}
+                  className="!h-[200px] !w-auto object-contain"
+                  style={{ maxHeight: 200 }}
+                />
+              ))}
+            </Image.PreviewGroup>
           </div>
         </div>
       </Modal>
