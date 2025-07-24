@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from "react";
 import * as XLSX from "xlsx";
-import { Button, Modal, Table, Select, message, Input } from "antd";
+import { Button, Modal, Table, Select, message, Input, Popconfirm } from "antd";
 import axios from "axios";
 import { FaFileExcel } from "react-icons/fa";
 import { AiOutlineDoubleRight } from "react-icons/ai";
 import { useNavigate } from "react-router-dom";
+import { FcDeleteRow } from "react-icons/fc";
 
 const { Option } = Select;
 
@@ -63,13 +64,25 @@ const PedidoManager = () => {
       title: "Acciones",
       key: "acciones",
       render: (_, record) => (
-        <button
-          className="bg-primary rounded text-white text-sm font-bold px-3 py-2"
-          type="primary"
-          onClick={() => navigate(`/campaigns/${record.id}`)}
-        >
-          Ver Pedidos
-        </button>
+        <>
+          <button
+            className="bg-primary rounded text-white text-sm font-bold px-3 py-2"
+            type="primary"
+            onClick={() => navigate(`/campaigns/${record.id}`)}
+          >
+            Ver Pedidos
+          </button>
+          <Popconfirm
+            title="¿Estás seguro de eliminar esta campaña?"
+            okText="Sí"
+            cancelText="No"
+            onConfirm={() => eliminarCampaign(record.id)}
+          >
+            <Button danger icon={<FcDeleteRow />}>
+              Eliminar
+            </Button>
+          </Popconfirm>
+        </>
       ),
     },
   ];
@@ -287,6 +300,17 @@ const PedidoManager = () => {
     setCampaignName("");
     await fetchCampaigns();
     setModalVisibleCreated(false);
+  };
+  const eliminarCampaign = async (id) => {
+    try {
+      // Aquí va la lógica de tu petición DELETE
+      await axios.delete(`${apiUrl}/campaigns/${id}`);
+      message.success("Campaña eliminada correctamente");
+      await fetchCampaigns();
+    } catch (error) {
+      console.error(error);
+      message.error("Error al eliminar campaña");
+    }
   };
 
   const buscar_sedes = async () => {

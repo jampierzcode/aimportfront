@@ -639,7 +639,7 @@ const CampaignDetails = () => {
         case "en camino":
           statusNew = "en almacen"; //en ruta(en camino)
           break;
-        case "en almacen":
+        case "en reparto":
           statusNew = "entregado"; //en ruta(en camino)
           break;
 
