@@ -12,8 +12,11 @@ import {
   Button,
   Row,
   Col,
+  Input,
   Image,
   Checkbox,
+  Form,
+  DatePicker,
 } from "antd";
 import { ExclamationCircleOutlined, FileExcelFilled } from "@ant-design/icons";
 import {
@@ -44,6 +47,7 @@ import dayjs from "dayjs";
 const { confirm } = Modal;
 
 const { Option } = Select;
+const { TextArea } = Input;
 const CampaignDetails = () => {
   const { auth } = useAuth();
 
@@ -830,15 +834,7 @@ const CampaignDetails = () => {
   // useEffect para manejar el filtrado y paginación
   useEffect(() => {
     applyFilters(); // Aplicar filtros cuando cambian filtros de texto o ubicación
-  }, [
-    pedidos,
-    visiblePedidos,
-    searchTerm,
-    searchField,
-    departamento,
-    provincia,
-    distrito,
-  ]);
+  }, [pedidos, searchTerm, searchField, departamento, provincia, distrito]);
 
   const departamentosUnicos = useMemo(() => {
     const set = new Set();
@@ -991,6 +987,96 @@ const CampaignDetails = () => {
     });
   };
 
+  // motivos register
+  const statusOptions = [
+    {
+      value: "ausente",
+      label: "Ausente",
+      submotivos: ["Ausente constante", "Nueva visita", "Reprogramado"],
+    },
+    {
+      value: "rechazado",
+      label: "Rechazado",
+      submotivos: [
+        "No hizo el pedido",
+        "No cuenta con dinero",
+        "Pedido llego incompleto",
+        "Pedido llego deteriorado",
+      ],
+    },
+    { value: "pendiente", label: "Pendiente", submotivos: [] },
+    { value: "siniestrado", label: "Siniestrado", submotivos: [] },
+    {
+      value: "otro",
+      label: "otro",
+      submotivos: [
+        "Direccion errada",
+        "Direccion incompleta",
+        "Titular se mudo",
+        "Numero de contacto fuera de servicio",
+        "Numero de contacto no corresponde a titular",
+      ],
+    },
+  ];
+
+  const [formMotivos] = Form.useForm();
+  const [selectedStatus, setSelectedStatus] = useState("");
+  const [selectedSubmotivo, setSelectedSubmotivo] = useState("");
+  const [submotivos, setSubmotivos] = useState([]);
+  const [loadingSendMotivo, setLoadingSendMotivo] = useState(false);
+  const [modalOpenMotivo, setModalOpenMotivo] = useState(false);
+  const sendMotivo = async (id) => {
+    setPedidoId(id);
+    setModalOpenMotivo(true);
+    formMotivos.setFieldsValue({
+      pedido_id: id,
+      status: "",
+      submotivo: "",
+      observacion: "",
+      fecha_reprogramacion: null,
+    });
+    setSelectedStatus("");
+  };
+  const handleStatusMotivos = (value) => {
+    setSelectedStatus(value);
+    const found = statusOptions.find((status) => status.value === value);
+    setSubmotivos(found?.submotivos || []);
+    formMotivos.setFieldsValue({
+      submotivo: undefined,
+      fecha_reprogramacion: null,
+    });
+  };
+  const handleSubmotivoChange = (value) => {
+    setSelectedSubmotivo(value);
+  };
+  const handleSubmitMotivo = async () => {
+    setLoadingSendMotivo(true);
+    try {
+      const values = await formMotivos.validateFields();
+      const payload = {
+        ...values,
+        pedido_id: pedidoId,
+        fecha_reprogramacion: values.fecha_reprogramacion
+          ? dayjs(values.fecha_reprogramacion).format("YYYY-MM-DD HH:mm:ss")
+          : null,
+      };
+      await axios.post(`${apiUrl}/pedidosMotivos`, payload, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${auth.token}`,
+        },
+      });
+      message.success("Acción registrada correctamente");
+      setModalOpenMotivo(false);
+      formMotivos.resetFields();
+      await fetchCampaignData();
+    } catch (error) {
+      console.error(error);
+      message.error("Error al registrar acción");
+    }
+    setLoadingSendMotivo(false);
+  };
+
   const handleVerFotos = (multimedia, id) => {
     setPedidoId(id);
     setIsOpenMultimedia(true);
@@ -1014,7 +1100,10 @@ const CampaignDetails = () => {
             >
               Ver fotos: {record?.multimedia?.length}
             </button>
-            {record.status === "en reparto" ? (
+            {record.status === "en reparto" ||
+            (record.status === "ausente") |
+              (record.status === "pendiente") |
+              (record.status === "otro") ? (
               <button
                 onClick={() => handleEntregar(record.id)}
                 className="px-3 py-2 rounded text-white bg-primary"
@@ -1028,6 +1117,17 @@ const CampaignDetails = () => {
                 className="px-3 py-2 rounded text-white bg-yellow-600"
               >
                 Devolver a reparto
+              </button>
+            ) : null}
+            {record.status === "en reparto" ||
+            (record.status === "ausente") |
+              (record.status === "pendiente") |
+              (record.status === "otro") ? (
+              <button
+                onClick={() => sendMotivo(record.id)}
+                className="px-3 py-2 rounded bg-gray-600 text-white"
+              >
+                Registrar un motivo
               </button>
             ) : null}
           </>
@@ -1923,6 +2023,83 @@ const CampaignDetails = () => {
               Enviar
             </button>
           </div>
+        </div>
+      </Modal>
+      {/* modal send motivos*/}
+      <Modal
+        open={modalOpenMotivo}
+        onOk={handleSubmitMotivo}
+        okText="Crear"
+        onCancel={() => setModalOpenMotivo(false)}
+        width="90vw"
+      >
+        <div className="w-full">
+          {pintarSendStatus()}
+
+          <p className="text-sm">
+            Esta seccion es para registrar un incoveniente con la entrega del
+            pedido en el flujo de reparto
+          </p>
+          {loadingSendMotivo ? (
+            <div className="w-full h-full z-50 absolute top-0 right-0 left-0 bottom-0 bg-primary text-white flex items-center justify-center gap-3">
+              <Spin /> <h1>Agregando motivos: cambiando status de pedidos</h1>
+            </div>
+          ) : null}
+          <Form layout="vertical" form={formMotivos}>
+            <Form.Item
+              name="status"
+              label="Estado"
+              rules={[{ required: true, message: "Seleccione un estado" }]}
+            >
+              <Select
+                placeholder="Seleccione estado"
+                onChange={handleStatusMotivos}
+              >
+                {statusOptions.map((opt) => (
+                  <Option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </Option>
+                ))}
+              </Select>
+            </Form.Item>
+
+            {selectedStatus && submotivos.length > 0 && (
+              <Form.Item
+                name="submotivo"
+                label="Submotivo"
+                rules={[{ required: true }]}
+              >
+                <Select
+                  onChange={handleSubmotivoChange}
+                  placeholder="Seleccione submotivo"
+                >
+                  {submotivos.map((sub, index) => (
+                    <Option key={index} value={sub}>
+                      {sub}
+                    </Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            )}
+
+            {selectedSubmotivo === "Reprogramado" && (
+              <Form.Item
+                name="fecha_reprogramacion"
+                label="Fecha y hora de reprogramación"
+                rules={[{ required: true, message: "Seleccione fecha y hora" }]}
+              >
+                <DatePicker
+                  showTime
+                  format="YYYY-MM-DD HH:mm:ss"
+                  style={{ width: "100%" }}
+                />
+              </Form.Item>
+            )}
+
+            <Form.Item name="observacion" label="Observación">
+              <TextArea rows={3} />
+            </Form.Item>
+          </Form>
         </div>
       </Modal>
       <ImageUploadModal
