@@ -2278,6 +2278,11 @@ const CampaignDetails = () => {
                   <option value="en camino">En camino(ruta)</option>
                   <option value="en almacen">En almacen(destino)</option>
                   <option value="en reparto">En Reparto</option>
+                  <option value="ausente">Ausente</option>
+                  <option value="pendiente">Pendiente</option>
+                  <option value="rechazado">Rechazado</option>
+                  <option value="siniestrado">Siniestrado</option>
+                  <option value="otro">Otro</option>
                   <option value="entregado">Entregado</option>
                 </select>
               ) : (
