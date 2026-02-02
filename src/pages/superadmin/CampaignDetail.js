@@ -111,7 +111,7 @@ const CampaignDetails = () => {
             Authorization: `Bearer ${auth.token}`,
             "Content-Type": "application/json",
           },
-        }
+        },
       );
 
       if ((deleteMultimedia.status = "success")) {
@@ -164,7 +164,7 @@ const CampaignDetails = () => {
   const [tempAsignados, setTempAsignados] = useState([]);
   const [tempPedidosCompletar, setTempPedidosCompletar] = useState([]);
   const [pedidosNoEncontradosByCode, setPedidosNoEncontradosByCode] = useState(
-    []
+    [],
   );
   const [tempAsignadosCompletar, setTempAsignadosCompletar] = useState([]);
   const [showModal, setShowModal] = useState(false);
@@ -283,7 +283,7 @@ const CampaignDetails = () => {
           num_cajas: String(row["Número de cajas"] || ""),
         };
         const isExistPedidos = pedidos.filter(
-          (p) => p.idSolicitante === pedido.id_solicitante
+          (p) => p.idSolicitante === pedido.id_solicitante,
         );
         if (isExistPedidos.length === 1) {
           const sede = sedes.find((s) => s.department === pedido.departamento);
@@ -397,7 +397,9 @@ const CampaignDetails = () => {
       ...pedidosAsignadosCompletar,
     ]);
     setPedidosExcelCompletar(
-      pedidosExcelCompletar.filter((p) => !selectedRowsCompletar.includes(p.id))
+      pedidosExcelCompletar.filter(
+        (p) => !selectedRowsCompletar.includes(p.id),
+      ),
     );
     setSelectedRowsCompletar([]);
     setModalVisibleSedeCompletar(false);
@@ -492,7 +494,7 @@ const CampaignDetails = () => {
   const [filtroDistritoSendStatus, setFiltroDistritoSendStatus] =
     useState(null);
   const [pedidosFiltradosSendStatus, setPedidosFiltradosSendStatus] = useState(
-    []
+    [],
   );
 
   useEffect(() => {
@@ -537,7 +539,7 @@ const CampaignDetails = () => {
         ...new Set(
           pedidosSendStatus
             .filter((p) => p.departamento === filtroDepartamentoSendStatus)
-            .map((p) => p.provincia)
+            .map((p) => p.provincia),
         ),
       ]
     : [];
@@ -547,7 +549,7 @@ const CampaignDetails = () => {
         ...new Set(
           pedidosSendStatus
             .filter((p) => p.provincia === filtroProvinciaSendStatus)
-            .map((p) => p.distrito)
+            .map((p) => p.distrito),
         ),
       ]
     : [];
@@ -617,7 +619,7 @@ const CampaignDetails = () => {
 
     if (pedidosSeleccionadosSendStatus.length === 0) {
       message.warning(
-        "No hay pedidos seleccionados para enviar con status:recepcionado"
+        "No hay pedidos seleccionados para enviar con status:recepcionado",
       );
       return;
     }
@@ -626,7 +628,7 @@ const CampaignDetails = () => {
       fechaSendStatus === null
     ) {
       message.warning(
-        "Ha seleccionado una fecha especifica, porfavor llenar el campo de fecha + hora"
+        "Ha seleccionado una fecha especifica, porfavor llenar el campo de fecha + hora",
       );
       return;
     }
@@ -666,7 +668,7 @@ const CampaignDetails = () => {
             "Content-Type": "application/json",
             Authorization: `Bearer ${auth.token}`,
           },
-        }
+        },
       );
       console.log(response);
       setLoadingPedidosSendStatus(false);
@@ -741,7 +743,7 @@ const CampaignDetails = () => {
               "Content-Type": "application/json",
               Authorization: `Bearer ${auth.token}`,
             },
-          }
+          },
         );
         console.log(response);
         const dataMultimedia = responseEnviiosMultimedia.data;
@@ -807,7 +809,7 @@ const CampaignDetails = () => {
     // Filtro por departamento
     if (departamento) {
       filtered = filtered.filter(
-        (pedido) => pedido.departamento === departamento
+        (pedido) => pedido.departamento === departamento,
       );
     }
 
@@ -863,7 +865,7 @@ const CampaignDetails = () => {
   useEffect(() => {
     if (pedidoIdParaActualizarMultimedia && pedidos.length > 0) {
       const pedidoActualizado = pedidos.find(
-        (p) => p.id === pedidoIdParaActualizarMultimedia
+        (p) => p.id === pedidoIdParaActualizarMultimedia,
       );
       if (pedidoActualizado) {
         setMultimedia(pedidoActualizado.multimedia);
@@ -887,7 +889,7 @@ const CampaignDetails = () => {
       console.log(response);
       const allPedidos = response.data.pedidos || [];
       const registrados = allPedidos.filter(
-        (pedido) => pedido.status === "registrado"
+        (pedido) => pedido.status === "registrado",
       );
 
       setCampaign(response.data);
@@ -922,7 +924,7 @@ const CampaignDetails = () => {
             "Content-Type": "application/json",
             Authorization: `Bearer ${auth.token}`,
           },
-        }
+        },
       );
       console.log(response);
       const data = response.data;
@@ -945,7 +947,7 @@ const CampaignDetails = () => {
             "Content-Type": "application/json",
             Authorization: `Bearer ${auth.token}`,
           },
-        }
+        },
       );
       console.log(response);
       const data = response.data;
@@ -1191,7 +1193,14 @@ const CampaignDetails = () => {
     {
       title: "Nombre Solicitante",
       dataIndex: "nombreSolicitante",
-      key: "nombreSolicitante",
+      render: (_, record) => {
+        return (
+          <>
+            <span>{record.nombreSolicitante}</span>
+            <h1>DNI: {record.dni ?? ""}</h1>
+          </>
+        );
+      },
     },
     {
       title: "Dirección",
@@ -1245,7 +1254,7 @@ const CampaignDetails = () => {
             "Content-Type": "application/json",
             Authorization: `Bearer ${auth.token}`,
           },
-        }
+        },
       );
       console.log(response);
       const data = response.data;
@@ -1272,7 +1281,7 @@ const CampaignDetails = () => {
             "Content-Type": "application/json",
             Authorization: `Bearer ${auth.token}`,
           },
-        }
+        },
       );
       console.log(response);
       const data = response.data;
@@ -1289,19 +1298,19 @@ const CampaignDetails = () => {
   const eliminarProductosNoEncontrados = () => {
     const codigosRegistrados = pedidosRegistrados.map((p) => p.idSolicitante);
     const nuevosPedidosCargados = pedidosCargados.filter((codigo) =>
-      codigosRegistrados.includes(codigo)
+      codigosRegistrados.includes(codigo),
     );
     setPedidosCargados(nuevosPedidosCargados);
   };
   const recogerPedidos = async () => {
     const codigosPedidos = pedidosRegistrados.map((p) => p.idSolicitante);
     const todosExisten = pedidosCargados.every((codigo) =>
-      codigosPedidos.includes(codigo)
+      codigosPedidos.includes(codigo),
     );
 
     if (!todosExisten) {
       message.error(
-        "Hay códigos recogidos que no existen en la lista de pedidos."
+        "Hay códigos recogidos que no existen en la lista de pedidos.",
       );
       return;
     }
@@ -1346,14 +1355,15 @@ const CampaignDetails = () => {
           ? pedido.status_pedido.find((sp) => sp.status === "entregado")
           : null;
       const fecha_despacho = pedido.status_pedido.find(
-        (sp) => sp.status === "recepcionado"
+        (sp) => sp.status === "recepcionado",
       );
       return {
         "Fecha de despacho": new Date(
-          fecha_despacho.createdAt
+          fecha_despacho.createdAt,
         ).toLocaleString(),
         "Nombre del Solicitante": pedido.nombreSolicitante,
         "ID del Solicitante": pedido.idSolicitante,
+        DNI: pedido.dni,
         Estado: pedido.status,
         Dirección: pedido.direccion,
         "Origen - Departamento": pedido.origen?.department || "",
@@ -1375,7 +1385,7 @@ const CampaignDetails = () => {
       wch:
         Math.max(
           key.length,
-          ...data.map((row) => (row[key] ? row[key].toString().length : 0))
+          ...data.map((row) => (row[key] ? row[key].toString().length : 0)),
         ) + 2, // +2 para dejar algo de margen
     }));
     worksheet["!cols"] = columnWidths;
@@ -1400,7 +1410,7 @@ const CampaignDetails = () => {
       wch:
         Math.max(
           key.length,
-          ...data.map((row) => (row[key] ? row[key].toString().length : 0))
+          ...data.map((row) => (row[key] ? row[key].toString().length : 0)),
         ) + 2, // +2 para dejar algo de margen
     }));
     worksheet["!cols"] = columnWidths;
@@ -1992,7 +2002,7 @@ const CampaignDetails = () => {
                     render: (_, record) => (
                       <Checkbox
                         checked={pedidosSeleccionadosSendStatus.includes(
-                          record.id
+                          record.id,
                         )}
                         onChange={(e) => {
                           if (e.target.checked) {
@@ -2003,8 +2013,8 @@ const CampaignDetails = () => {
                           } else {
                             setPedidosSeleccionadosSendStatus(
                               pedidosSeleccionadosSendStatus.filter(
-                                (id) => id !== record.id
-                              )
+                                (id) => id !== record.id,
+                              ),
                             );
                           }
                         }}
