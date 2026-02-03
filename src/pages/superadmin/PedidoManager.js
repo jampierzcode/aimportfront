@@ -28,7 +28,7 @@ const PedidoManager = () => {
   const [selectCliente, setSelectCliente] = useState(null);
   const handleChange = (value) => {
     const clienteSeleccionado = clientes.find(
-      (cliente) => cliente.id === value
+      (cliente) => cliente.id === value,
     );
     setSelectCliente(clienteSeleccionado.id);
   };
@@ -107,7 +107,7 @@ const PedidoManager = () => {
     try {
       const response = await axios.get(`${apiUrl}/clientes`);
       const data = response.data;
-      if (data.status == "success") {
+      if (data.status === "success") {
         setClientes(data.data); // Guardar clientes en el estado
       } else {
         new Error("Error de fetch");

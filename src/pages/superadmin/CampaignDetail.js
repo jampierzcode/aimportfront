@@ -40,7 +40,7 @@ import { useAuth } from "../../components/AuthContext";
 import ImageUploadModal from "../../components/rolRepartidor/ImageUploadModal";
 import EstadisticasModal from "./EstadisticasModal";
 import ModalAsignarPedidos from "../../components/rolSuperAdmin/ModalAsignarPedidos";
-import { BiBarcode, BiLineChart } from "react-icons/bi";
+import { BiBarcode } from "react-icons/bi";
 import { FiRefreshCw } from "react-icons/fi";
 import BarcodeScannerImport from "../../components/rolSuperAdmin/BarCodeScannerImport";
 import dayjs from "dayjs";
@@ -63,7 +63,6 @@ const CampaignDetails = () => {
 
   const [pedidoId, setPedidoId] = useState(null);
   const [showAsignar, setShowAsignar] = useState(false);
-  const [showImportCodes, setShowImportCodes] = useState(false);
   const [pedidos, setPedidos] = useState([]);
   const [repartidores, setRepartidores] = useState([]);
   const [visiblePedidos, setVisiblePedidos] = useState([]);
@@ -569,10 +568,9 @@ const CampaignDetails = () => {
   };
 
   const pintarSendStatus = () => {
-    let statusNew;
     switch (filterSendStatusChange) {
       case "registrado":
-        statusNew = "recepcionado";
+        // statusNew = "recepcionado";
         return (
           <div className="w-full max-w-max text-xl text-nowrap rounded flex items-center gap-3 px-3 py-2 bg-gray-200 text-gray-600">
             <FaInbox />
@@ -582,7 +580,7 @@ const CampaignDetails = () => {
 
         break;
       case "recepcionado":
-        statusNew = "en camino"; //en ruta(en camino)
+        // statusNew = "en camino"; //en ruta(en camino)
         return (
           <div className="w-full max-w-max text-xl text-nowrap rounded flex items-center gap-3 px-3 py-2 bg-gray-200 text-gray-600">
             <FaTruck />
@@ -591,7 +589,7 @@ const CampaignDetails = () => {
         );
         break;
       case "en camino":
-        statusNew = "en almacen"; //en almacen destino
+        // statusNew = "en almacen"; //en almacen destino
         return (
           <div className="w-full max-w-max text-xl text-nowrap rounded flex items-center gap-3 px-3 py-2 bg-gray-200 text-gray-600">
             <FaTruckLoading />
@@ -600,7 +598,7 @@ const CampaignDetails = () => {
         );
         break;
       case "en reparto":
-        statusNew = "entregado"; //entregado
+        // statusNew = "entregado"; //entregado
         return (
           <div className="w-full max-w-max text-xl text-nowrap rounded flex items-center gap-3 px-3 py-2 bg-gray-200 text-gray-600">
             <FaBoxOpen />

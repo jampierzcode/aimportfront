@@ -30,7 +30,7 @@ const SedesManager = () => {
       console.log(response);
 
       const data = response.data;
-      if (data.status == "success") {
+      if (data.status === "success") {
         const reformData = data.data.map((d) => {
           return {
             id: d.id,

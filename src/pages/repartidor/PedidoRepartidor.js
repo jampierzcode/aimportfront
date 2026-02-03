@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import axios from "axios";
 import {
   Table,
@@ -73,7 +73,7 @@ const PedidoRepartidor = () => {
             Authorization: `Bearer ${auth.token}`,
             "Content-Type": "application/json",
           },
-        }
+        },
       );
 
       if ((deleteMultimedia.status = "success")) {
@@ -134,7 +134,7 @@ const PedidoRepartidor = () => {
               "Content-Type": "application/json",
               Authorization: `Bearer ${auth.token}`,
             },
-          }
+          },
         );
         console.log(response);
         const dataMultimedia = responseEnviiosMultimedia.data;
@@ -155,7 +155,6 @@ const PedidoRepartidor = () => {
   };
 
   const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
   const [searchField, setSearchField] = useState("idSolicitante");
 
   const [departamento, setDepartamento] = useState("");
@@ -201,7 +200,7 @@ const PedidoRepartidor = () => {
     // Filtro por departamento
     if (departamento) {
       filtered = filtered.filter(
-        (pedido) => pedido.departamento === departamento
+        (pedido) => pedido.departamento === departamento,
       );
     }
 
@@ -257,7 +256,7 @@ const PedidoRepartidor = () => {
   useEffect(() => {
     if (pedidoIdParaActualizarMultimedia && pedidos.length > 0) {
       const pedidoActualizado = pedidos.find(
-        (p) => p.id === pedidoIdParaActualizarMultimedia
+        (p) => p.id === pedidoIdParaActualizarMultimedia,
       );
       if (pedidoActualizado) {
         setMultimedia(pedidoActualizado.multimedia);
@@ -302,7 +301,7 @@ const PedidoRepartidor = () => {
             "Content-Type": "application/json",
             Authorization: `Bearer ${auth.token}`,
           },
-        }
+        },
       );
       console.log(response);
       const data = response.data;
@@ -463,11 +462,11 @@ const PedidoRepartidor = () => {
           ? pedido.status_pedido.find((sp) => sp.status === "entregado")
           : null;
       const fecha_despacho = pedido.status_pedido.find(
-        (sp) => sp.status === "recepcionado"
+        (sp) => sp.status === "recepcionado",
       );
       return {
         "Fecha de despacho": new Date(
-          fecha_despacho.createdAt
+          fecha_despacho.createdAt,
         ).toLocaleString(),
         "Nombre del Solicitante": pedido.nombreSolicitante,
         "ID del Solicitante": pedido.idSolicitante,
@@ -492,7 +491,7 @@ const PedidoRepartidor = () => {
       wch:
         Math.max(
           key.length,
-          ...data.map((row) => (row[key] ? row[key].toString().length : 0))
+          ...data.map((row) => (row[key] ? row[key].toString().length : 0)),
         ) + 2, // +2 para dejar algo de margen
     }));
     worksheet["!cols"] = columnWidths;

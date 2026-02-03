@@ -176,7 +176,7 @@ const Usuarios = () => {
         clienteCreate.direccion === ""
       ) {
         message.warning(
-          "Estas creando un usuario del tipo cliente, porfavor debes registrar los datos de la empresa como RUC, RAZON SOCIAL y DIRECCION"
+          "Estas creando un usuario del tipo cliente, porfavor debes registrar los datos de la empresa como RUC, RAZON SOCIAL y DIRECCION",
         );
         return;
       }
@@ -188,7 +188,7 @@ const Usuarios = () => {
       usuarioCreate.password === ""
     ) {
       message.warning(
-        "Los Campos de nombre, email, sede y password deben estar llenos para poder crear al usuario"
+        "Los Campos de nombre, email, sede y password deben estar llenos para poder crear al usuario",
       );
       return;
     }
@@ -213,7 +213,7 @@ const Usuarios = () => {
           setLoadingCreateUsuarios(false);
         } else {
           message.error(
-            "Ocurrio un error al crear el usuario, intentelo mas tarde"
+            "Ocurrio un error al crear el usuario, intentelo mas tarde",
           );
           setLoadingCreateUsuarios(false);
         }
@@ -399,39 +399,39 @@ const Usuarios = () => {
         const searchRegex = new RegExp(searchTerm, "i");
 
         const matchSearch = Object.values(usuario).some((value) =>
-          searchRegex.test(value.toString())
+          searchRegex.test(value.toString()),
         );
 
         const matchFilters =
           !filters.fechaCreatedRange[0] ||
           ((dayjs(usuario.fecha_created).isAfter(
             filters.fechaCreatedRange[0],
-            "day"
+            "day",
           ) ||
             dayjs(usuario.fecha_created).isSame(
               filters.fechaCreatedRange[0],
-              "day"
+              "day",
             )) &&
             (dayjs(usuario.fecha_created).isBefore(
               filters.fechaCreatedRange[1],
-              "day"
+              "day",
             ) ||
               dayjs(usuario.fecha_created).isSame(
                 filters.fechaCreatedRange[1],
-                "day"
+                "day",
               )));
 
         return matchSearch && matchFilters;
       });
       detectarTotalPages(filteredUsuarios);
       const objetosOrdenados = filteredUsuarios.sort((a, b) =>
-        dayjs(b.fecha_created).isAfter(dayjs(a.fecha_created)) ? 1 : -1
+        dayjs(b.fecha_created).isAfter(dayjs(a.fecha_created)) ? 1 : -1,
       );
       const startIndex = (currentPage - 1) * itemsPerPage;
       // setCurrentPage(1);
       const paginatedUsuarios = objetosOrdenados.slice(
         startIndex,
-        startIndex + itemsPerPage
+        startIndex + itemsPerPage,
       );
 
       setVisibleUsuarios(paginatedUsuarios);
@@ -445,42 +445,42 @@ const Usuarios = () => {
     applyFilters(); // Aplicar filtro inicialmente
   }, [filterUsuarios, currentPage, itemsPerPage, searchTerm]);
 
-  const handleSelect = (e, id) => {
-    e.stopPropagation();
-    setSelectsProperties((prevSelects) => {
-      if (prevSelects.includes(id)) {
-        return prevSelects.filter((p) => p !== id);
-      } else {
-        return [...prevSelects, id];
-      }
-    });
-  };
-  const handleCheckSelect = (e, id) => {
-    e.stopPropagation();
-    let active = e.target.checked;
-    if (active) {
-      setSelectsProperties((prevSelects) => [...prevSelects, id]);
-    } else {
-      setSelectsProperties((prevSelects) =>
-        prevSelects.filter((p) => p !== id)
-      );
-    }
-  };
+  // const handleSelect = (e, id) => {
+  //   e.stopPropagation();
+  //   setSelectsProperties((prevSelects) => {
+  //     if (prevSelects.includes(id)) {
+  //       return prevSelects.filter((p) => p !== id);
+  //     } else {
+  //       return [...prevSelects, id];
+  //     }
+  //   });
+  // };
+  // const handleCheckSelect = (e, id) => {
+  //   e.stopPropagation();
+  //   let active = e.target.checked;
+  //   if (active) {
+  //     setSelectsProperties((prevSelects) => [...prevSelects, id]);
+  //   } else {
+  //     setSelectsProperties((prevSelects) =>
+  //       prevSelects.filter((p) => p !== id)
+  //     );
+  //   }
+  // };
 
-  const handleSelectAll = (e) => {
-    const isChecked = e.target.checked;
-    const visiblePropertyIds = visibleUsuarios.map((propiedad) => propiedad.id);
+  // const handleSelectAll = (e) => {
+  //   const isChecked = e.target.checked;
+  //   const visiblePropertyIds = visibleUsuarios.map((propiedad) => propiedad.id);
 
-    if (isChecked) {
-      setSelectsProperties((prevSelects) => [
-        ...new Set([...prevSelects, ...visiblePropertyIds]),
-      ]);
-    } else {
-      setSelectsProperties((prevSelects) =>
-        prevSelects.filter((id) => !visiblePropertyIds.includes(id))
-      );
-    }
-  };
+  //   if (isChecked) {
+  //     setSelectsProperties((prevSelects) => [
+  //       ...new Set([...prevSelects, ...visiblePropertyIds]),
+  //     ]);
+  //   } else {
+  //     setSelectsProperties((prevSelects) =>
+  //       prevSelects.filter((id) => !visiblePropertyIds.includes(id))
+  //     );
+  //   }
+  // };
 
   const handlePageChange = (newPage) => {
     setCurrentPage(newPage);
@@ -508,7 +508,7 @@ const Usuarios = () => {
     const startIndex = (currentPage - 1) * itemsPerPage;
     const paginatedUsuarios = filterUsuarios.slice(
       startIndex,
-      startIndex + itemsPerPage
+      startIndex + itemsPerPage,
     );
 
     setVisibleUsuarios(paginatedUsuarios);
@@ -522,7 +522,7 @@ const Usuarios = () => {
           headers: {
             Authorization: `Bearer ${session.token}`,
           },
-        }
+        },
       );
       console.log(response);
       resolve(response.data);
@@ -532,7 +532,7 @@ const Usuarios = () => {
     console.log(id);
     let propiedad_id = id;
     try {
-      const response = await eliminar_property(propiedad_id);
+      await eliminar_property(propiedad_id);
       buscarUsuarios();
       message.success("Se elimino correctamente la propiedad");
     } catch (error) {
