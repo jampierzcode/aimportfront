@@ -119,12 +119,12 @@ const ImageUploadModal = ({ isOpen, onClose, onUpload }) => {
       }, "image/jpeg");
     }
   };
-
   useEffect(() => {
     if (!isOpen) {
       closeCamera();
       setImages([]);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
   return (

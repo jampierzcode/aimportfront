@@ -227,6 +227,7 @@ const PedidoRepartidor = () => {
   // useEffect para manejar el filtrado y paginación
   useEffect(() => {
     applyFilters(); // Aplicar filtros cuando cambian filtros de texto o ubicación
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchTerm, searchField, pedidos, departamento, provincia, distrito]);
 
   const departamentosUnicos = useMemo(() => {
@@ -289,6 +290,7 @@ const PedidoRepartidor = () => {
 
   useEffect(() => {
     fetchPedidosAsignados();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [0]);
 
   const sendPedidoEntregar = async (id) => {

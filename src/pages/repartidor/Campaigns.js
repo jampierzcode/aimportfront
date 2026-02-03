@@ -61,6 +61,7 @@ const CampaignRepartidor = () => {
   // useEffect para llamar a la API al montar el componente
   useEffect(() => {
     fetchCampaigns();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (

@@ -578,7 +578,6 @@ const CampaignDetails = () => {
           </div>
         );
 
-        break;
       case "recepcionado":
         // statusNew = "en camino"; //en ruta(en camino)
         return (
@@ -587,7 +586,6 @@ const CampaignDetails = () => {
             Enviar a ruta
           </div>
         );
-        break;
       case "en camino":
         // statusNew = "en almacen"; //en almacen destino
         return (
@@ -596,7 +594,6 @@ const CampaignDetails = () => {
             Recepcionar en destino
           </div>
         );
-        break;
       case "en reparto":
         // statusNew = "entregado"; //entregado
         return (
@@ -605,7 +602,6 @@ const CampaignDetails = () => {
             Entregar
           </div>
         );
-        break;
 
       default:
         break;
@@ -695,6 +691,7 @@ const CampaignDetails = () => {
   };
   useEffect(() => {
     buscar_sedes();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [0]);
   const buscar_repartidores = async () => {
     try {
@@ -711,6 +708,7 @@ const CampaignDetails = () => {
   };
   useEffect(() => {
     buscar_repartidores();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [0]);
   // ✅ Subir mas fotos a la API
   const handleUploadMorePhotos = async (files) => {
@@ -834,6 +832,7 @@ const CampaignDetails = () => {
   // useEffect para manejar el filtrado y paginación
   useEffect(() => {
     applyFilters(); // Aplicar filtros cuando cambian filtros de texto o ubicación
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pedidos, searchTerm, searchField, departamento, provincia, distrito]);
 
   const departamentosUnicos = useMemo(() => {
@@ -877,9 +876,9 @@ const CampaignDetails = () => {
     setIsModalOpen(true);
   };
 
-  const handleGenerateCodigos = () => {
-    navigate(`/generar-codigos/${id}`);
-  };
+  // const handleGenerateCodigos = () => {
+  //   navigate(`/generar-codigos/${id}`);
+  // };
 
   const fetchCampaignData = async () => {
     try {
@@ -904,6 +903,7 @@ const CampaignDetails = () => {
 
   useEffect(() => {
     fetchCampaignData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const handleMorePhotos = () => {

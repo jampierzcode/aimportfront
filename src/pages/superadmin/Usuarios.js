@@ -106,6 +106,7 @@ const Usuarios = () => {
         password: newPass,
       });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editGenerate]);
 
   const exportToExcel = (data) => {
@@ -311,8 +312,8 @@ const Usuarios = () => {
     }
   };
   useEffect(() => {
-    // eslint-disable-next-line
     buscarUsuarios();
+    // eslint-disable-next-line
   }, [0]);
 
   const buscarSedes = async () => {
@@ -335,8 +336,8 @@ const Usuarios = () => {
     }
   };
   useEffect(() => {
-    // eslint-disable-next-line
     buscarSedes();
+    // eslint-disable-next-line
   }, [0]);
 
   const buscarRoles = async () => {
@@ -361,10 +362,11 @@ const Usuarios = () => {
   useEffect(() => {
     // eslint-disable-next-line
     buscarRoles();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [0]);
 
   // ESTADOS PARA LA TABLA DINAMICA
-  const [selectsProperties, setSelectsProperties] = useState([]);
+  // const [selectsProperties, setSelectsProperties] = useState([]);
   const [itemsPerPage, setItemsPerPage] = useState(10); //items por pagina
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -443,6 +445,7 @@ const Usuarios = () => {
   // useEffect para manejar el filtrado y paginación
   useEffect(() => {
     applyFilters(); // Aplicar filtro inicialmente
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterUsuarios, currentPage, itemsPerPage, searchTerm]);
 
   // const handleSelect = (e, id) => {
@@ -1052,7 +1055,7 @@ const Usuarios = () => {
               menu={{ items }}
               placement="bottomLeft"
               trigger={["click"]}
-              disabled={selectsProperties.length > 0 ? false : true}
+              // disabled={selectsProperties.length > 0 ? false : true}
             >
               <Button>
                 Editar selección <TbCaretDownFilled />

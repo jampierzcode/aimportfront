@@ -22,7 +22,7 @@ const BarcodeScanner = ({
           const code = bufferRef.current.trim();
           if (code !== "") {
             const isRegistrado = pedidos.some(
-              (obj) => obj.idSolicitante === code
+              (obj) => obj.idSolicitante === code,
             );
             if (isRegistrado) {
               const yaExiste = pedidosCargados.includes(code);
@@ -35,7 +35,7 @@ const BarcodeScanner = ({
               bufferRef.current = "";
             } else {
               message.warning(
-                `El código no se encuentra precargado en la campaña, subirlo manualmente`
+                `El código no se encuentra precargado en la campaña, subirlo manualmente`,
               );
             }
           }
@@ -62,6 +62,7 @@ const BarcodeScanner = ({
     if (isModal === false) {
       setPedidosCargados([]);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isModal, setPedidosCargados]);
 
   return (

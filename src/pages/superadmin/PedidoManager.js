@@ -101,6 +101,7 @@ const PedidoManager = () => {
   // useEffect para llamar a la API al montar el componente
   useEffect(() => {
     fetchCampaigns();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   // Función para obtener campañas desde la API
   const fetchClientes = async () => {
@@ -121,6 +122,7 @@ const PedidoManager = () => {
   // useEffect para llamar a la API al montar el componente
   useEffect(() => {
     fetchClientes();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ✅ Leer Excel
@@ -328,6 +330,7 @@ const PedidoManager = () => {
   };
   useEffect(() => {
     buscar_sedes();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [0]);
 
   return (

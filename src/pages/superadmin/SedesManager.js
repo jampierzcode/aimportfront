@@ -55,6 +55,7 @@ const SedesManager = () => {
 
   useEffect(() => {
     fetchSedes();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleCreate = async () => {

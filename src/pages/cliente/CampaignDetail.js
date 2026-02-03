@@ -196,6 +196,7 @@ const CampaignDetailsCliente = () => {
   };
   useEffect(() => {
     buscar_sedes();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [0]);
 
   const [loading, setLoading] = useState(true);
@@ -244,7 +245,7 @@ const CampaignDetailsCliente = () => {
     // Filtro por departamento
     if (departamento) {
       filtered = filtered.filter(
-        (pedido) => pedido.departamento === departamento
+        (pedido) => pedido.departamento === departamento,
       );
     }
 
@@ -271,6 +272,7 @@ const CampaignDetailsCliente = () => {
   // useEffect para manejar el filtrado y paginación
   useEffect(() => {
     applyFilters(); // Aplicar filtros cuando cambian filtros de texto o ubicación
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchTerm, searchField, departamento, provincia, distrito]);
 
   const departamentosUnicos = useMemo(() => {
@@ -316,6 +318,7 @@ const CampaignDetailsCliente = () => {
 
   useEffect(() => {
     fetchCampaignData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const [isOpenMultimedia, setIsOpenMultimedia] = useState(false);
@@ -468,7 +471,7 @@ const CampaignDetailsCliente = () => {
       wch:
         Math.max(
           key.length,
-          ...data.map((row) => (row[key] ? row[key].toString().length : 0))
+          ...data.map((row) => (row[key] ? row[key].toString().length : 0)),
         ) + 2, // +2 para dejar algo de margen
     }));
     worksheet["!cols"] = columnWidths;
