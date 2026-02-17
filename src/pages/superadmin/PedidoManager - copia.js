@@ -1,16 +1,6 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import * as XLSX from "xlsx";
-import {
-  Button,
-  Modal,
-  Table,
-  Select,
-  message,
-  Input,
-  Popconfirm,
-  DatePicker,
-  Tag,
-} from "antd";
+import { Button, Modal, Table, Select, message, Input, Popconfirm } from "antd";
 import axios from "axios";
 import { FaFileExcel } from "react-icons/fa";
 import { AiOutlineDoubleRight } from "react-icons/ai";
@@ -18,21 +8,12 @@ import { useNavigate } from "react-router-dom";
 import { FcDeleteRow } from "react-icons/fc";
 
 const { Option } = Select;
-const { RangePicker } = DatePicker;
 
 const PedidoManager = () => {
   const navigate = useNavigate();
   const apiUrl = process.env.REACT_APP_API_URL;
-
-  const [campaigns, setCampaigns] = useState([]);
-  const [clientes, setClientes] = useState([]);
-
-  // filtros
-  const [filterClienteId, setFilterClienteId] = useState(null); // proveedor = cliente
-  const [filterDateRange, setFilterDateRange] = useState(null); // [dayjs, dayjs]
-  const [filterPedidoStatus, setFilterPedidoStatus] = useState(null);
-
-  // otros estados ya existentes (los dejo)
+  const [campaigns, setCampaigns] = useState([]); // Estado para almacenar campañas
+  const [clientes, setClientes] = useState([]); // Estado para almacenar campañas
   const [sedes, setSedes] = useState([]);
   const [pedidos, setPedidos] = useState([]);
   const [asignados, setAsignados] = useState([]);
@@ -45,94 +26,92 @@ const PedidoManager = () => {
   const [sedeSeleccionadaDestino, setSedeSeleccionadaDestino] = useState(null);
   const [fileSelect, setFileSelect] = useState(null);
   const [selectCliente, setSelectCliente] = useState(null);
-
-  // ✅ helper: counts (vienen del backend como totalPedidos, entregadosCount, faltantesCount)
-  const getTotalPedidos = (r) =>
-    Number(
-      r.meta.totalPedidos ?? r.meta.total_pedidos ?? r.meta.pedidos_count ?? 0,
-    );
-  const getEntregados = (r) =>
-    Number(r.meta.entregadosCount ?? r.meta.entregados_count ?? 0);
-  const getFaltantes = (r) => {
-    const direct = r.meta.faltantesCount ?? r.meta.faltantes_count;
-    if (direct !== undefined && direct !== null) return Number(direct);
-    const total = getTotalPedidos(r);
-    const ent = getEntregados(r);
-    console.log(total);
-    console.log(ent);
-    return Math.max(total - ent, 0);
-  };
-
-  // ✅ status options (por pedidos)
-  const pedidoStatusOptions = useMemo(
-    () => [
-      { value: "finalizada", label: "Finalizadas (todos entregados)" },
-      { value: "faltan", label: "Faltan por finalizar" },
-      { value: "registrado", label: "Registrado" },
-      { value: "recepcionado", label: "Recepcionado" },
-      { value: "en camino", label: "En camino" },
-      { value: "en almacen", label: "En almacén" },
-      { value: "en reparto", label: "En reparto" },
-      { value: "entregado", label: "Entregado" },
-      { value: "ausente", label: "Ausente" },
-      { value: "rechazado", label: "Rechazado" },
-      { value: "siniestrado", label: "Siniestrado" },
-      { value: "otro", label: "Otro" },
-    ],
-    [],
-  );
-
-  const handleChangeCliente = (value) => {
+  const handleChange = (value) => {
     const clienteSeleccionado = clientes.find(
       (cliente) => cliente.id === value,
     );
-    setSelectCliente(clienteSeleccionado?.id ?? null);
-
-    // filtro real
-    setFilterClienteId(clienteSeleccionado?.id ?? null);
+    setSelectCliente(clienteSeleccionado.id);
   };
 
-  const filterOptionCliente = (input, option) => {
+  const filterOption = (input, option) => {
     const cliente = clientes.find((c) => c.id === option.value);
     if (!cliente) return false;
     const inputLower = input.toLowerCase();
     return (
-      (cliente.name || "").toLowerCase().includes(inputLower) ||
-      (cliente.razon_social || "").toLowerCase().includes(inputLower)
+      cliente.ruc.toLowerCase().includes(inputLower) ||
+      cliente.razonSocial.toLowerCase().includes(inputLower)
     );
   };
 
-  // ✅ Traer campañas con filtros (backend)
+  const columnsCampaign = [
+    {
+      title: "ID",
+      dataIndex: "id",
+      key: "id",
+    },
+    {
+      title: "Nombre de Campaña",
+      dataIndex: "name",
+      key: "name",
+    },
+    {
+      title: "Fecha de Creación",
+      dataIndex: "createdAt",
+      key: "createdAt",
+      render: (text) => new Date(text).toLocaleDateString(),
+    },
+    {
+      title: "Acciones",
+      key: "acciones",
+      render: (_, record) => (
+        <>
+          <button
+            className="bg-primary rounded text-white text-sm font-bold px-3 py-2"
+            type="primary"
+            onClick={() => navigate(`/campaigns/${record.id}`)}
+          >
+            Ver Pedidos
+          </button>
+          <Popconfirm
+            title="¿Estás seguro de eliminar esta campaña?"
+            okText="Sí"
+            cancelText="No"
+            onConfirm={() => eliminarCampaign(record.id)}
+          >
+            <Button danger icon={<FcDeleteRow />}>
+              Eliminar
+            </Button>
+          </Popconfirm>
+        </>
+      ),
+    },
+  ];
+
+  // Función para obtener campañas desde la API
   const fetchCampaigns = async () => {
     try {
-      const params = {};
-
-      if (filterClienteId) params.cliente_id = filterClienteId;
-
-      if (filterDateRange && filterDateRange.length === 2) {
-        params.from = filterDateRange[0]?.format("YYYY-MM-DD");
-        params.to = filterDateRange[1]?.format("YYYY-MM-DD");
-      }
-
-      if (filterPedidoStatus) params.pedido_status = filterPedidoStatus;
-
-      const response = await axios.get(`${apiUrl}/campaigns`, { params });
-      setCampaigns(response.data);
+      const response = await axios.get(`${apiUrl}/campaigns`);
+      setCampaigns(response.data); // Guardar campañas en el estado
     } catch (error) {
       console.error("Error al obtener campañas:", error);
       message.error("No se pudieron cargar las campañas");
     }
   };
 
-  // ✅ Traer clientes
+  // useEffect para llamar a la API al montar el componente
+  useEffect(() => {
+    fetchCampaigns();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  // Función para obtener campañas desde la API
   const fetchClientes = async () => {
     try {
       const response = await axios.get(`${apiUrl}/clientes`);
       const data = response.data;
       if (data.status === "success") {
-        setClientes(data.data);
+        setClientes(data.data); // Guardar clientes en el estado
       } else {
-        throw new Error("Error de fetch");
+        new Error("Error de fetch");
       }
     } catch (error) {
       console.error("Error al obtener clientes:", error);
@@ -140,23 +119,13 @@ const PedidoManager = () => {
     }
   };
 
+  // useEffect para llamar a la API al montar el componente
   useEffect(() => {
     fetchClientes();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ✅ refetch campañas cuando cambian filtros
-  useEffect(() => {
-    fetchCampaigns();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filterClienteId, filterDateRange, filterPedidoStatus]);
-
-  const limpiarFiltros = () => {
-    setFilterClienteId(null);
-    setFilterDateRange(null);
-    setFilterPedidoStatus(null);
-  };
-
+  // ✅ Leer Excel
   const [tempPedidos, setTempPedidos] = useState([]);
   const [tempAsignados, setTempAsignados] = useState([]);
   const [showModal, setShowModal] = useState(false);
@@ -334,139 +303,18 @@ const PedidoManager = () => {
     await fetchCampaigns();
     setModalVisibleCreated(false);
   };
-  // ✅ eliminar campaña
   const eliminarCampaign = async (id) => {
     try {
+      // Aquí va la lógica de tu petición DELETE
       await axios.delete(`${apiUrl}/campaigns/${id}`);
-      message.success("Campaña eliminada");
-      fetchCampaigns();
+      message.success("Campaña eliminada correctamente");
+      await fetchCampaigns();
     } catch (error) {
-      console.error("Error al eliminar campaña:", error);
-      message.error("No se pudo eliminar la campaña");
+      console.error(error);
+      message.error("Error al eliminar campaña");
     }
   };
-  const handleChange = (value) => {
-    const clienteSeleccionado = clientes.find(
-      (cliente) => cliente.id === value,
-    );
-    setSelectCliente(clienteSeleccionado.id);
-  };
 
-  const filterOption = (input, option) => {
-    const cliente = clientes.find((c) => c.id === option.value);
-    if (!cliente) return false;
-    const inputLower = input.toLowerCase();
-    return (
-      cliente.ruc.toLowerCase().includes(inputLower) ||
-      cliente.razonSocial.toLowerCase().includes(inputLower)
-    );
-  };
-  // ✅ columnas tabla campañas
-  const columns = [
-    {
-      title: "ID",
-      dataIndex: "id",
-      key: "id",
-      width: 80,
-    },
-    {
-      title: "Nombre de Campaña",
-      dataIndex: "name",
-      key: "name",
-      render: (text) => <span style={{ fontWeight: 600 }}>{text}</span>,
-    },
-    {
-      title: "Proveedor",
-      key: "cliente",
-      width: 180,
-      render: (_, record) => {
-        const c = record.cliente;
-        return (
-          <div>
-            <div style={{ fontWeight: 600 }}>
-              {c?.name || c?.razon_social || "—"}
-            </div>
-            <div style={{ fontSize: 12, opacity: 0.7 }}>
-              {c?.ruc || c?.documento || ""}
-            </div>
-          </div>
-        );
-      },
-    },
-    {
-      title: "Estado (por pedidos)",
-      key: "estadoPedidos",
-      width: 160,
-      render: (_, record) => {
-        const total = getTotalPedidos(record);
-        const faltan = getFaltantes(record);
-
-        if (total === 0) return <Tag>Sin pedidos</Tag>;
-
-        if (faltan === 0) return <Tag color="green">Finalizada</Tag>;
-        return <Tag color="orange">Faltan</Tag>;
-      },
-    },
-    {
-      title: "Totales",
-      key: "totales",
-      width: 180,
-      render: (_, record) => {
-        const total = getTotalPedidos(record);
-        const ent = getEntregados(record);
-        const faltan = getFaltantes(record);
-
-        return (
-          <div>
-            <div>
-              {ent}/{total} entregados
-            </div>
-            <div style={{ fontSize: 12, opacity: 0.75 }}>{faltan} faltan</div>
-          </div>
-        );
-      },
-    },
-    {
-      title: "Fecha de Creación",
-      key: "createdAt",
-      width: 140,
-      render: (_, record) => {
-        // si viene createdAt ISO
-        const v = record.createdAt || record.created_at;
-        if (!v) return "—";
-        const d = new Date(v);
-        if (Number.isNaN(d.getTime())) return String(v);
-        return d.toLocaleDateString();
-      },
-    },
-    {
-      title: "Acciones",
-      key: "acciones",
-      width: 220,
-      render: (_, record) => (
-        <>
-          <button
-            className="btn btn-primary"
-            style={{ marginRight: 8 }}
-            onClick={() => navigate(`/campaigns/${record.id}`)}
-          >
-            Ver Pedidos
-          </button>
-
-          <Popconfirm
-            title="¿Estás seguro de eliminar esta campaña?"
-            okText="Sí"
-            cancelText="No"
-            onConfirm={() => eliminarCampaign(record.id)}
-          >
-            <Button danger icon={<FcDeleteRow />}>
-              Eliminar
-            </Button>
-          </Popconfirm>
-        </>
-      ),
-    },
-  ];
   const buscar_sedes = async () => {
     try {
       const response = await axios.get(`${apiUrl}/sedes`);
@@ -486,78 +334,28 @@ const PedidoManager = () => {
   }, [0]);
 
   return (
-    <div style={{ padding: 20 }}>
-      {/* Header acciones */}
-      <div
-        className="max-w-max px-3 py-2 bg-gray-300 text-gray-900 font-bold text-sm cursor-pointer"
-        onClick={() => setModalVisibleCreated(true)}
-      >
-        + Crear Nueva Campaña
-      </div>
-      <div
-        className="max-w-max px-3 py-2 bg-primary text-white font-bold text-sm flex gap-3 items-center cursor-pointer"
-        onClick={() => setModalVisible(true)}
-      >
-        <FaFileExcel /> Subir Masivamente
-      </div>
-
-      {/* ✅ Filtros */}
-      <div
-        style={{
-          display: "flex",
-          gap: 12,
-          alignItems: "center",
-          marginBottom: 16,
-          flexWrap: "wrap",
-        }}
-      >
-        <Select
-          allowClear
-          showSearch
-          placeholder="Filtrar por proveedor"
-          style={{ width: 240 }}
-          value={filterClienteId}
-          onChange={(v) => setFilterClienteId(v ?? null)}
-          filterOption={filterOptionCliente}
+    <div>
+      <div className="w-full flex gap-3">
+        <div
+          className="max-w-max px-3 py-2 bg-gray-300 text-gray-900 font-bold text-sm cursor-pointer"
+          onClick={() => setModalVisibleCreated(true)}
         >
-          {clientes.map((c) => (
-            <Option key={c.id} value={c.id}>
-              {c.name || c.razonSocial}
-            </Option>
-          ))}
-        </Select>
-
-        <RangePicker
-          style={{ width: 320 }}
-          value={filterDateRange}
-          onChange={(v) => setFilterDateRange(v)}
-          placeholder={["Start date", "End date"]}
-        />
-
-        <Select
-          allowClear
-          placeholder="Estado por pedidos"
-          style={{ width: 260 }}
-          value={filterPedidoStatus}
-          onChange={(v) => setFilterPedidoStatus(v ?? null)}
+          + Crear Nueva Campaña
+        </div>
+        <div
+          className="max-w-max px-3 py-2 bg-primary text-white font-bold text-sm flex gap-3 items-center cursor-pointer"
+          onClick={() => setModalVisible(true)}
         >
-          {pedidoStatusOptions.map((o) => (
-            <Option key={o.value} value={o.value}>
-              {o.label}
-            </Option>
-          ))}
-        </Select>
-
-        <Button onClick={limpiarFiltros}>Limpiar filtros</Button>
+          <FaFileExcel /> Subir Masivamente
+        </div>
       </div>
-
-      {/* Tabla */}
       <Table
-        rowKey="id"
-        columns={columns}
         dataSource={campaigns}
+        columns={columnsCampaign}
+        rowKey="id"
         pagination={{ pageSize: 10 }}
       />
+
       <Modal
         open={showModal}
         onCancel={() => setShowModal(false)}
@@ -761,5 +559,4 @@ const PedidoManager = () => {
     </div>
   );
 };
-
 export default PedidoManager;
