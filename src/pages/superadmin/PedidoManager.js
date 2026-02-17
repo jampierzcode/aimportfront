@@ -82,16 +82,6 @@ const PedidoManager = () => {
     [],
   );
 
-  const handleChangeCliente = (value) => {
-    const clienteSeleccionado = clientes.find(
-      (cliente) => cliente.id === value,
-    );
-    setSelectCliente(clienteSeleccionado?.id ?? null);
-
-    // filtro real
-    setFilterClienteId(clienteSeleccionado?.id ?? null);
-  };
-
   const filterOptionCliente = (input, option) => {
     const cliente = clientes.find((c) => c.id === option.value);
     if (!cliente) return false;
