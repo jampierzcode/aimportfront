@@ -7,6 +7,7 @@ import {
   Button,
   DatePicker,
   Dropdown,
+  Input,
   message,
   Modal,
   Select,
@@ -14,7 +15,6 @@ import {
 } from "antd";
 import { MdAdd } from "react-icons/md";
 import { TbAdjustments, TbCaretDownFilled } from "react-icons/tb";
-import { Link } from "react-router-dom";
 import { AiOutlineSearch } from "react-icons/ai";
 import axios from "axios";
 import dayjs from "dayjs";
@@ -30,6 +30,9 @@ import {
   FaUserCog,
 } from "react-icons/fa";
 import { useAuth } from "../../components/AuthContext";
+import PageHeader from "../../components/ui/PageHeader";
+import StatCard from "../../components/ui/StatCard";
+import Card from "../../components/ui/Card";
 const { RangePicker } = DatePicker;
 const { Option } = Select;
 const Usuarios = () => {
@@ -53,7 +56,6 @@ const Usuarios = () => {
     return password;
   };
   const { auth } = useAuth();
-  const session = JSON.parse(sessionStorage.getItem("user"));
   const apiUrl = process.env.REACT_APP_API_URL;
 
   //   sedes
@@ -517,96 +519,111 @@ const Usuarios = () => {
     setVisibleUsuarios(paginatedUsuarios);
   };
 
-  const eliminar_property = (propiedad_id) => {
-    return new Promise(async (resolve, reject) => {
-      const response = await axios.delete(
-        `${apiUrl}/propiedades/${propiedad_id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${session.token}`,
-          },
-        },
-      );
-      console.log(response);
-      resolve(response.data);
-    });
-  };
-  const handleEliminarProperty = async (id) => {
-    console.log(id);
-    let propiedad_id = id;
+  const handleEliminarUsuario = async (id) => {
     try {
-      await eliminar_property(propiedad_id);
-      buscarUsuarios();
-      message.success("Se elimino correctamente la propiedad");
+      await axios.delete(`${apiUrl}/users/${id}`, {
+        headers: { Authorization: `Bearer ${auth.token}` },
+      });
+      await buscarUsuarios();
+      message.success("Usuario eliminado correctamente");
     } catch (error) {
-      message.error("No se elimino la propiedad, hubo un error");
+      message.error("No se pudo eliminar el usuario");
+    }
+  };
+
+  // ✅ Cambiar contraseña (solo superadmin: esta página ya está restringida a ese rol)
+  const [passwordModalUser, setPasswordModalUser] = useState(null);
+  const [newPasswordValue, setNewPasswordValue] = useState("");
+  const [savingPassword, setSavingPassword] = useState(false);
+
+  const abrirModalPassword = (usuario) => {
+    setPasswordModalUser(usuario);
+    setNewPasswordValue(generateRandomPassword(10));
+  };
+
+  const handleGuardarPassword = async () => {
+    if (!passwordModalUser) return;
+    if (!newPasswordValue || newPasswordValue.length < 8) {
+      message.warning("La contraseña debe tener al menos 8 caracteres");
+      return;
+    }
+    setSavingPassword(true);
+    try {
+      await axios.put(
+        `${apiUrl}/users/${passwordModalUser.id}/password`,
+        { password: newPasswordValue },
+        { headers: { Authorization: `Bearer ${auth.token}` } },
+      );
+      message.success(`Contraseña de ${passwordModalUser.name} actualizada`);
+      setPasswordModalUser(null);
+      setNewPasswordValue("");
+    } catch (error) {
+      message.error(
+        error.response?.data?.message || "No se pudo cambiar la contraseña",
+      );
+    } finally {
+      setSavingPassword(false);
     }
   };
 
   return (
-    <div className="w-full p-6 app-container-sections">
-      <div
-        className="mb-[32px] flex items-center justify-between py-4 pr-4"
-        style={{ background: "linear-gradient(90deg,#fff0,#fff)" }}
-      >
-        <div className="data">
-          <div className="title font-bold text-xl text-bold-font">Usuarios</div>
-          <div className="subtitle max-w-[30vw] text-xs font-normal text-light-font">
-            Lista de tus usuarios
-          </div>
-          <button
-            onClick={() => exportToExcel(usuarios)}
-            className="flex items-center gap-3 rounded px-3 py-2 bg-green-600 text-white font-bold"
-          >
-            <FaFileExcel size={20} />
-            Excel
-          </button>
-        </div>
-        <div className="options bg-gray-50 p-4">
-          <div className="page-top-card flex items-center gap-3">
-            <div className="icon bg-light-purple p-4 rounded text-dark-purple">
-              <FaUserCog />
-            </div>
-            <div>
-              <div className="value font-bold text-bold-font text-xl">
-                {usuarios.length}
-              </div>
-              <div className="text-sm font-normal text-light-font">
-                Total usuarios
-              </div>
-            </div>
-          </div>
-        </div>
+    <div className="w-full">
+      <PageHeader
+        eyebrow="Equipo"
+        title="Usuarios"
+        subtitle="Administra las cuentas que tienen acceso al sistema"
+        actions={
+          <>
+            <button
+              onClick={() => exportToExcel(usuarios)}
+              className="flex items-center gap-2 rounded-lg px-4 h-[38px] bg-emerald-600 hover:bg-emerald-700 transition-colors text-white text-sm font-semibold"
+            >
+              <FaFileExcel size={16} />
+              Excel
+            </button>
+            <button
+              onClick={(e) => abrirModalCreate(e)}
+              className="flex items-center gap-2 rounded-lg px-4 h-[38px] bg-primary-600 hover:bg-primary-700 transition-colors text-white text-sm font-semibold"
+            >
+              <MdAdd className="text-base" />
+              Nuevo Usuario
+            </button>
+          </>
+        }
+      />
+
+      <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <StatCard
+          tone="indigo"
+          icon={<FaUserCog />}
+          label="Total usuarios"
+          value={usuarios.length}
+        />
       </div>
-      <div className="horizontal-options flex items-center mb-[24px]">
-        <div className="search-hook flex-grow">
-          <div className="inmocms-input bg-white border rounded border-gray-300 flex text-sm h-[46px] overflow-hidden font-normal">
+
+      <Card className="mt-6" padded={false}>
+        <div className="flex items-center gap-3 p-5 md:p-6">
+          <div className="flex-1 flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg h-[42px] px-3 focus-within:border-primary-400 transition-colors">
+            <AiOutlineSearch className="text-slate-400 text-lg shrink-0" />
             <input
-              className="h-full px-[12px] w-full border-0 border-none focus:outline-none"
+              className="h-full w-full bg-transparent border-0 text-sm focus:outline-none placeholder:text-slate-400"
               placeholder="Buscar usuarios"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               autoComplete="on"
             />
-            <AiOutlineSearch className="h-full w-[24px] min-w-[24px] opacity-5 mx-[12px]" />
           </div>
-        </div>
-        <div className="horizontal-options-items ml-[28px] flex items-center">
           <button
             onClick={() => setActiveFilter(!activeFilter)}
-            className="inmocms-button bg-dark-blue text-white rounded p-4"
+            className={`flex items-center justify-center h-[42px] w-[42px] shrink-0 rounded-lg border transition-colors ${
+              activeFilter
+                ? "bg-primary-600 border-primary-600 text-white"
+                : "bg-white border-slate-200 text-slate-500 hover:border-primary-300 hover:text-primary-600"
+            }`}
           >
-            <TbAdjustments />
-          </button>
-          <button
-            onClick={(e) => abrirModalCreate(e)}
-            className="bg-primary text-white ml-[12px] h-[46px] flex gap-2 items-center rounded px-3"
-          >
-            <MdAdd className="text-white" />
-            <span className="mobile-hide">Nuevo Usuario</span>
+            <TbAdjustments className="text-lg" />
           </button>
         </div>
-      </div>
 
       <Modal
         footer={null}
@@ -816,7 +833,7 @@ const Usuarios = () => {
       <div
         className={`${
           activeFilter ? "" : "hidden"
-        } filters grid grid-cols-1 md:grid-cols-6 gap-4 bg-white py-4 px-3 mb-4`}
+        } filters grid grid-cols-1 md:grid-cols-6 gap-3 bg-slate-50 border-y border-slate-100 py-4 px-5 md:px-6`}
       >
         <div className="col-span-2">
           <RangePicker
@@ -829,22 +846,22 @@ const Usuarios = () => {
           />
         </div>
 
-        <div className="w-full flex flex-col md:flex-row">
+        <div className="w-full flex gap-2 items-center">
           <button
-            className="p-3 rounded bg-white text-light-font text-xs"
+            className="h-[38px] px-4 rounded-lg text-slate-500 hover:text-primary-600 text-xs font-semibold"
             onClick={() => handleClearFilters()}
           >
             Limpiar
           </button>
           <button
-            className="p-3 rounded bg-dark-purple text-white text-xs"
+            className="h-[38px] px-4 rounded-lg bg-primary-600 hover:bg-primary-700 transition-colors text-white text-xs font-semibold"
             onClick={() => applyFilters()}
           >
             Buscar
           </button>
         </div>
       </div>
-      <div className="box-table">
+      <div className="overflow-x-auto px-2 md:px-3 pt-2">
         <table
           className="inmocms-table"
           cellPadding="0"
@@ -941,9 +958,7 @@ const Usuarios = () => {
                               {
                                 label: (
                                   <button
-                                    onClick={() => {
-                                      console.log("eliminar");
-                                    }}
+                                    onClick={() => abrirModalPassword(usuario)}
                                     className="w-full rounded flex items-center gap-2 text-sm"
                                   >
                                     <FaLock /> Cambiar Contraseña
@@ -953,26 +968,15 @@ const Usuarios = () => {
                               },
                               {
                                 label: (
-                                  <Link
-                                    to={`/propiedades/editar/${usuario.id}`}
-                                    className="pr-6 rounded flex items-center gap-2 text-sm text-gray-500"
-                                  >
-                                    <FaEdit /> Editar info
-                                  </Link>
-                                ),
-                                key: 1,
-                              },
-                              {
-                                label: (
                                   <button
                                     onClick={() => {
                                       Modal.confirm({
                                         title:
-                                          "¿Está seguro de eliminar la propiedad?",
+                                          "¿Está seguro de eliminar este usuario?",
                                         content:
-                                          "Al eliminar la propiedad, se eliminarán los datos relacionados con la propiedad como: modelos, unidades y contenido multimedia",
+                                          "Esta acción no se puede deshacer.",
                                         onOk: () =>
-                                          handleEliminarProperty(usuario.id),
+                                          handleEliminarUsuario(usuario.id),
                                         okText: "Eliminar",
                                         cancelText: "Cancelar",
                                       });
@@ -982,7 +986,7 @@ const Usuarios = () => {
                                     <FaTrash /> Eliminar
                                   </button>
                                 ),
-                                key: 2,
+                                key: 1,
                               },
                             ],
                           }}
@@ -1063,49 +1067,49 @@ const Usuarios = () => {
             </Dropdown>
           </div>
         </div>
-        <div className="pagination-controls flex gap-2 items-center">
+        <div className="pagination-controls flex gap-1.5 items-center">
           <button
-            className={`p-3 text-xs rounded ${
+            className={`h-8 min-w-8 px-2 text-xs font-semibold rounded-lg transition-colors ${
               currentPage === 1
-                ? "bg-light-purple text-dark-purple"
-                : "bg-dark-purple text-white"
-            }  `}
+                ? "bg-slate-50 text-slate-300 cursor-not-allowed"
+                : "bg-white border border-slate-200 text-slate-600 hover:border-primary-300 hover:text-primary-600"
+            }`}
             onClick={() => handlePageChange(1)}
             disabled={currentPage === 1}
           >
             1
           </button>
           <button
-            className={`p-3 text-xs rounded ${
+            className={`h-8 min-w-8 px-2 text-xs font-semibold rounded-lg transition-colors ${
               currentPage === 1
-                ? "bg-light-purple text-dark-purple"
-                : "bg-dark-purple text-white"
-            }  `}
+                ? "bg-slate-50 text-slate-300 cursor-not-allowed"
+                : "bg-white border border-slate-200 text-slate-600 hover:border-primary-300 hover:text-primary-600"
+            }`}
             onClick={() => handlePageChange(currentPage - 1)}
             disabled={currentPage === 1}
           >
             {"<"}
           </button>
-          <button className="p-3 rounded bg-dark-purple text-white text-xs">
+          <button className="h-8 min-w-8 px-2 rounded-lg bg-primary-600 text-white text-xs font-semibold">
             {currentPage}
           </button>
           <button
-            className={`p-3 text-xs rounded ${
+            className={`h-8 min-w-8 px-2 text-xs font-semibold rounded-lg transition-colors ${
               currentPage === totalPages
-                ? "bg-light-purple text-dark-purple"
-                : "bg-dark-purple text-white"
-            }  `}
+                ? "bg-slate-50 text-slate-300 cursor-not-allowed"
+                : "bg-white border border-slate-200 text-slate-600 hover:border-primary-300 hover:text-primary-600"
+            }`}
             onClick={() => handlePageChange(currentPage + 1)}
             disabled={currentPage === totalPages}
           >
             {">"}
           </button>
           <button
-            className={`p-3 text-xs rounded ${
+            className={`h-8 min-w-8 px-2 text-xs font-semibold rounded-lg transition-colors ${
               currentPage === totalPages
-                ? "bg-light-purple text-dark-purple"
-                : "bg-dark-purple text-white"
-            }  `}
+                ? "bg-slate-50 text-slate-300 cursor-not-allowed"
+                : "bg-white border border-slate-200 text-slate-600 hover:border-primary-300 hover:text-primary-600"
+            }`}
             onClick={() => handlePageChange(totalPages)}
             disabled={currentPage === totalPages}
           >
@@ -1113,6 +1117,53 @@ const Usuarios = () => {
           </button>
         </div>
       </div>
+      <div className="h-4" />
+      </Card>
+
+      <Modal
+        title="Cambiar contraseña"
+        open={!!passwordModalUser}
+        onCancel={() => setPasswordModalUser(null)}
+        footer={null}
+      >
+        <div className="flex flex-col gap-4 pt-2">
+          <p className="text-sm text-slate-500">
+            Nueva contraseña para{" "}
+            <span className="font-semibold text-slate-700">
+              {passwordModalUser?.name}
+            </span>{" "}
+            ({passwordModalUser?.email}).
+          </p>
+          <div className="flex gap-2">
+            <Input
+              value={newPasswordValue}
+              onChange={(e) => setNewPasswordValue(e.target.value)}
+              placeholder="Nueva contraseña"
+            />
+            <Button
+              onClick={() => setNewPasswordValue(generateRandomPassword(10))}
+            >
+              <FaRedo />
+            </Button>
+            <Button
+              onClick={() => {
+                navigator.clipboard.writeText(newPasswordValue);
+                message.success("¡Copiado!");
+              }}
+            >
+              <FaCopy />
+            </Button>
+          </div>
+          <Button
+            type="primary"
+            block
+            loading={savingPassword}
+            onClick={handleGuardarPassword}
+          >
+            Guardar nueva contraseña
+          </Button>
+        </div>
+      </Modal>
     </div>
   );
 };

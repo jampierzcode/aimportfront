@@ -14,13 +14,15 @@ const LogoutButton = ({ open }) => {
   return (
     <button
       onClick={handleLogout}
-      className="mt-auto transition-all duration-300 hover:bg-light-purple hover:text-dark-purple p-2 text-sm rounded flex gap-3 items-center w-full"
+      className={`mt-auto transition-all duration-200 text-slate-500 hover:bg-rose-50 hover:text-rose-600 p-2.5 text-sm font-medium rounded-lg flex gap-3 items-center w-full ${
+        !open && "justify-center"
+      }`}
     >
-      <span className="block float-left text-2xl">
+      <span className="block shrink-0 text-lg">
         <MdLogout />
       </span>
       <span
-        className={`text-base text-start font-medium flex-1 ${
+        className={`text-sm text-start font-medium flex-1 ${
           !open && "hidden"
         }`}
       >

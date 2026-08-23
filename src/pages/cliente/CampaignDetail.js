@@ -13,6 +13,7 @@ import {
 
 import { FiRefreshCw } from "react-icons/fi";
 import EstadisticasModal from "../superadmin/EstadisticasModal";
+import PageHeader from "../../components/ui/PageHeader";
 
 const { Option } = Select;
 const CampaignDetailsCliente = () => {
@@ -488,30 +489,30 @@ const CampaignDetailsCliente = () => {
   };
 
   return (
-    <div>
-      <div className="flex gap-3 mb-4">
-        <EstadisticasModal pedidos={pedidos} />
-        <button
-          onClick={() => exportToExcelReport(pedidos)}
-          className="bg-blue-500 text-white px-4 py-2 rounded flex gap-3 items-center"
-        >
-          <AiOutlineDownload />
-          Exportar
-        </button>
-      </div>
-      <div className="flex justify-between gap-3">
-        <h2 className="text-2xl">
-          <b>Campaña: {campaign?.name}</b>
-        </h2>
-        <p className="text-xs">Puedes ver todos tus pedidos aquí</p>
-
-        <button
-          onClick={() => navigate("/cliente/pedidos")}
-          className="px-3 py-2 flex items-center gap-3 bg-primary text-white text-sm"
-        >
-          <FaArrowLeft /> Regresar
-        </button>
-      </div>
+    <div className="w-full">
+      <PageHeader
+        eyebrow="Envíos"
+        title={`Campaña: ${campaign?.name || ""}`}
+        subtitle="Puedes ver todos tus pedidos aquí"
+        actions={
+          <>
+            <button
+              onClick={() => navigate("/cliente/pedidos")}
+              className="flex items-center gap-2 rounded-lg px-4 h-[38px] border border-slate-200 text-slate-600 hover:border-primary-300 hover:text-primary-600 transition-colors text-sm font-semibold"
+            >
+              <FaArrowLeft /> Regresar
+            </button>
+            <EstadisticasModal pedidos={pedidos} />
+            <button
+              onClick={() => exportToExcelReport(pedidos)}
+              className="flex items-center gap-2 rounded-lg px-4 h-[38px] bg-slate-800 hover:bg-slate-900 transition-colors text-white text-sm font-semibold"
+            >
+              <AiOutlineDownload />
+              Exportar
+            </button>
+          </>
+        }
+      />
       <Modal
         open={showModal}
         onCancel={() => setShowModal(false)}

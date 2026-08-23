@@ -7,6 +7,7 @@ import {
   Navigate,
 } from "react-router-dom";
 import "@ant-design/v5-patch-for-react-19";
+import { ConfigProvider } from "antd";
 
 import { AuthProvider } from "./components/AuthContext";
 import PrivateRoute from "./components/PrivateRoute";
@@ -17,6 +18,7 @@ import LayoutSuperadmin from "./components/rolSuperAdmin/Layout";
 import LayoutRepartidor from "./components/rolRepartidor/Layout";
 import LayoutCliente from "./components/rolCliente/Layout";
 import Dashboard from "./pages/admin/Dashboard";
+import SuperAdminDashboard from "./pages/superadmin/Dashboard";
 import NotFoundPage from "./pages/NotFoundPage";
 import Identy from "./pages/Identy";
 import PedidoManager from "./pages/superadmin/PedidoManager";
@@ -30,17 +32,81 @@ import PedidosCliente from "./pages/cliente/Pedidos";
 import CampaignDetailsCliente from "./pages/cliente/CampaignDetail";
 import SedesManager from "./pages/superadmin/SedesManager";
 import CampaignRepartidor from "./pages/repartidor/Campaigns";
+import Perfil from "./pages/Perfil";
+
+const FONT_STACK =
+  '"Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
 
 function App() {
   return (
-    <AuthProvider>
-      <Router>
-        <Routes>
+    <ConfigProvider
+      theme={{
+        token: {
+          colorPrimary: "#2d3484",
+          colorInfo: "#2d3484",
+          borderRadius: 10,
+          fontFamily: FONT_STACK,
+          controlHeight: 38,
+        },
+        components: {
+          Table: {
+            headerBg: "#f8fafc",
+            headerColor: "#475569",
+            headerSplitColor: "transparent",
+            borderColor: "#eef1f6",
+            rowHoverBg: "#f8fafc",
+            cellPaddingBlock: 14,
+          },
+          Button: {
+            borderRadius: 10,
+            controlHeight: 38,
+            fontWeight: 600,
+          },
+          Modal: {
+            borderRadiusLG: 16,
+          },
+          Input: {
+            borderRadius: 8,
+            controlHeight: 38,
+          },
+          Select: {
+            borderRadius: 8,
+            controlHeight: 38,
+          },
+          Tag: {
+            borderRadiusSM: 6,
+          },
+        },
+      }}
+    >
+      <AuthProvider>
+        <Router>
+          <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/login/identy" element={<Identy />} />
           <Route path="/" element={<Navigate to="/login" replace />} />
 
           {/* RUTAS PARA USUARIO SUPERADMIN */}
+          <Route
+            path="/dashboard"
+            element={
+              <PrivateRoute roles={["superadmin"]}>
+                <LayoutSuperadmin>
+                  <SuperAdminDashboard />
+                </LayoutSuperadmin>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/perfil"
+            element={
+              <PrivateRoute roles={["superadmin"]}>
+                <LayoutSuperadmin>
+                  <Perfil />
+                </LayoutSuperadmin>
+              </PrivateRoute>
+            }
+          />
           <Route
             path="/sedes"
             element={
@@ -106,6 +172,16 @@ function App() {
               </PrivateRoute>
             }
           />
+          <Route
+            path="/repartidor/perfil"
+            element={
+              <PrivateRoute roles={["repartidor"]}>
+                <LayoutRepartidor>
+                  <Perfil />
+                </LayoutRepartidor>
+              </PrivateRoute>
+            }
+          />
 
           {/* RUTAS PARA USUARIO CLIENTE */}
           <Route
@@ -124,6 +200,16 @@ function App() {
               <PrivateRoute roles={["cliente"]}>
                 <LayoutCliente>
                   <CampaignDetailsCliente />
+                </LayoutCliente>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/cliente/perfil"
+            element={
+              <PrivateRoute roles={["cliente"]}>
+                <LayoutCliente>
+                  <Perfil />
                 </LayoutCliente>
               </PrivateRoute>
             }
@@ -154,9 +240,10 @@ function App() {
           {/* RUTA DE FORBIDDEN */}
           <Route path="/forbidden" element={<NotFoundPage />} />
           <Route path="*" element={<NotFoundPage />} />
-        </Routes>
-      </Router>
-    </AuthProvider>
+          </Routes>
+        </Router>
+      </AuthProvider>
+    </ConfigProvider>
   );
 }
 

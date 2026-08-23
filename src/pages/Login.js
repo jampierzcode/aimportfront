@@ -17,7 +17,7 @@ const Login = () => {
       const role = auth.user.rol.name; // Supongamos que el rol está en user.role
       console.log(role);
       if (role === "superadmin") {
-        navigate("/pedidos"); // Redirigir a la ruta de usuarios
+        navigate("/dashboard"); // Redirigir al dashboard
       } else if (role === "admin") {
         navigate("/dashboard"); // Redirigir a la ruta de usuarios
       } else if (role === "repartidor") {

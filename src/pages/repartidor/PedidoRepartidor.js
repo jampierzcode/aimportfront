@@ -19,8 +19,10 @@ import { ExclamationCircleOutlined } from "@ant-design/icons";
 import { AiOutlineDownload, AiOutlineSearch } from "react-icons/ai";
 import { useAuth } from "../../components/AuthContext";
 import ImageUploadModal from "../../components/rolRepartidor/ImageUploadModal";
-import { FiRefreshCw } from "react-icons/fi";
+import { FiRefreshCw, FiPackage, FiCheckCircle, FiAlertTriangle } from "react-icons/fi";
 import EstadisticasModal from "../superadmin/EstadisticasModal";
+import PageHeader from "../../components/ui/PageHeader";
+import StatCard from "../../components/ui/StatCard";
 const { confirm } = Modal;
 const { Option } = Select;
 const PedidoRepartidor = () => {
@@ -30,7 +32,6 @@ const PedidoRepartidor = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const apiUrl = process.env.REACT_APP_API_URL;
 
-  const apiUrlUpload = process.env.REACT_APP_UP_MULTIMEDIA;
 
   const [pedidoId, setPedidoId] = useState(null);
   const [pedidos, setPedidos] = useState([]);
@@ -49,9 +50,9 @@ const PedidoRepartidor = () => {
 
   const toggleImageSelection = (item) => {
     setSelectedImages((prev) => {
-      const exists = prev.some((img) => img.url === item.url);
+      const exists = prev.some((img) => img.id === item.id);
       return exists
-        ? prev.filter((img) => img.url !== item.url)
+        ? prev.filter((img) => img.id !== item.id)
         : [...prev, item];
     });
   };
@@ -65,6 +66,7 @@ const PedidoRepartidor = () => {
     setLoadingDelete(true);
 
     try {
+      // El backend elimina el registro y el objeto en el bucket S3 en un solo paso.
       const deleteMultimedia = await axios.post(
         `${apiUrl}/deleteMultimediaMasive`,
         { pedidos: selectedImages },
@@ -76,26 +78,14 @@ const PedidoRepartidor = () => {
         },
       );
 
-      if ((deleteMultimedia.status = "success")) {
-        const payload = {
-          urls: selectedImages.map((img) => img.url),
-        };
-        const response = await axios.delete(`${apiUrlUpload}/index.php`, {
-          headers: {
-            "Content-Type": "application/json", // <--- JSON, no multipart
-          },
-          data: payload,
-        });
-        const data = response.data;
-        if (data.success) {
-          message.success("Imágenes eliminadas correctamente");
-          await fetchPedidosAsignados(); // vuelve a cargar los datos del pedido
-          setPedidoIdParaActualizarMultimedia(pedidoId);
+      if (deleteMultimedia.data.status === "success") {
+        message.success("Imágenes eliminadas correctamente");
+        await fetchPedidosAsignados(); // vuelve a cargar los datos del pedido
+        setPedidoIdParaActualizarMultimedia(pedidoId);
 
-          setSelectedImages([]);
-        }
+        setSelectedImages([]);
       } else {
-        new Error(deleteMultimedia.error);
+        throw new Error(deleteMultimedia.data.message);
       }
     } catch (error) {
       console.error("Error al eliminar imágenes:", error);
@@ -105,48 +95,36 @@ const PedidoRepartidor = () => {
     }
   };
 
-  // ✅ Subir mas fotos a la API
+  // ✅ Subir mas fotos directamente al backend, que las guarda en el bucket S3
   const handleUploadMorePhotos = async (files) => {
     const formData = new FormData();
-    const searchPedido = pedidos.find((p) => p.id === pedidoId);
 
-    formData.append("folder", `${searchPedido.idSolicitante}`);
+    formData.append("pedido_id", pedidoId);
 
     files.forEach((file) => {
-      formData.append("files[]", file);
+      formData.append("files", file);
     });
 
     try {
-      const response = await axios.post(`${apiUrlUpload}/index.php`, formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
-      const data = response.data;
-      console.log(data);
-      if (data.success) {
-        console.log(data.files);
-        const responseEnviiosMultimedia = await axios.post(
-          `${apiUrl}/pedidosMultimedia`,
-          { files: data.files, pedido_id: pedidoId },
-          {
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${auth.token}`,
-            },
+      const response = await axios.post(
+        `${apiUrl}/pedidosMultimedia`,
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+            Authorization: `Bearer ${auth.token}`,
           },
-        );
-        console.log(response);
-        const dataMultimedia = responseEnviiosMultimedia.data;
-        if (dataMultimedia.status === "success") {
-          message.success("Se subieron las imagenes correctamente");
-          await fetchPedidosAsignados();
-          setPedidoIdParaActualizarMultimedia(pedidoId);
+        },
+      );
+      const dataMultimedia = response.data;
+      if (dataMultimedia.status === "success") {
+        message.success("Se subieron las imagenes correctamente");
+        await fetchPedidosAsignados();
+        setPedidoIdParaActualizarMultimedia(pedidoId);
 
-          setModalVisibleMorePhotos(false);
-        } else {
-          new Error("error de compilacion");
-        }
+        setModalVisibleMorePhotos(false);
+      } else {
+        throw new Error(dataMultimedia.message || "error al subir imágenes");
       }
     } catch (error) {
       console.error("Error al subir imágenes:", error);
@@ -510,42 +488,46 @@ const PedidoRepartidor = () => {
   };
 
   return (
-    <div>
-      <div className="flex justify-between gap-3">
-        <div>
-          <h2 className="text-3xl">
-            <b>Campaña: {campaign?.name}</b>
-          </h2>
-        </div>
+    <div className="w-full">
+      <PageHeader
+        eyebrow="Envíos"
+        title={`Campaña: ${campaign?.name || ""}`}
+        actions={
+          <>
+            <EstadisticasModal pedidos={pedidos} />
+            <button
+              onClick={() => exportToExcelReport(pedidos)}
+              className="flex items-center gap-2 rounded-lg px-4 h-[38px] bg-slate-800 hover:bg-slate-900 transition-colors text-white text-sm font-semibold"
+            >
+              <AiOutlineDownload />
+              Exportar
+            </button>
+          </>
+        }
+      />
 
-        <div className="flex gap-4">
-          <div className="box px-3 py-2 rounded text-sm font-bold bg-primary text-white">
-            Total asignados <span>{pedidos.length}</span>
-          </div>
-          <div className="box px-3 py-2 rounded text-sm font-bold bg-green-600 text-white">
-            Entregados{" "}
-            <span>
-              {pedidos.filter((p) => p.status === "entregado").length}
-            </span>
-          </div>
-          <div className="box px-3 py-2 rounded text-sm font-bold bg-yellow-300 text-yellow-700">
-            Faltantes{" "}
-            <span>
-              {pedidos.length -
-                pedidos.filter((p) => p.status === "entregado").length}
-            </span>
-          </div>
-        </div>
-      </div>
-      <div className="flex gap-3 mb-4 w-full overflow-x-auto">
-        <EstadisticasModal pedidos={pedidos} />
-        <button
-          onClick={() => exportToExcelReport(pedidos)}
-          className="bg-gray-800 text-white px-4 py-2 rounded flex gap-3 items-center"
-        >
-          <AiOutlineDownload />
-          Exportar
-        </button>
+      <div className="mt-6 grid grid-cols-2 md:grid-cols-3 gap-4">
+        <StatCard
+          tone="indigo"
+          icon={<FiPackage />}
+          label="Total asignados"
+          value={pedidos.length}
+        />
+        <StatCard
+          tone="emerald"
+          icon={<FiCheckCircle />}
+          label="Entregados"
+          value={pedidos.filter((p) => p.status === "entregado").length}
+        />
+        <StatCard
+          tone="amber"
+          icon={<FiAlertTriangle />}
+          label="Faltantes"
+          value={
+            pedidos.length -
+            pedidos.filter((p) => p.status === "entregado").length
+          }
+        />
       </div>
 
       <ImageUploadModal
@@ -646,10 +628,12 @@ const PedidoRepartidor = () => {
         <Spin size="large" />
       ) : (
         <div>
-          <h2 className="text-2xl">
-            <b>Mis pedidos</b>
+          <h2 className="text-lg font-bold text-slate-800 mt-6 mb-1">
+            Mis pedidos
           </h2>
-          <h3 className="text-xs mb-6">Puedes ver todos tus pedidos aquí</h3>
+          <p className="text-sm text-slate-400 mb-4">
+            Puedes ver todos tus pedidos aquí
+          </p>
           <div className="flex flex-col md:flex-row gap-4 mb-4">
             <Select
               placeholder="Selecciona un departamento"

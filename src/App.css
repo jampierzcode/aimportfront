@@ -37,9 +37,11 @@
 }
 .inmocms-table {
   width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
 }
 .inmocms-table thead tr {
-  height: 72px;
+  height: 48px;
 }
 .inmocms-table tr td.check-field {
   min-width: 54px;
@@ -47,17 +49,26 @@
   width: 54px;
 }
 .inmocms-table thead tr td {
-  color: #171b1e;
-  font-size: 12px;
-  font-weight: 500;
-  padding: 0 10px;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0 14px;
+  border-bottom: 1px solid #eef1f6;
+}
+.inmocms-table thead tr td:first-child {
+  border-top-left-radius: 10px;
+}
+.inmocms-table thead tr td:last-child {
+  border-top-right-radius: 10px;
 }
 .inmocms-table tbody tr {
   background: #fff;
-  height: 60px;
-  height: 75px;
-  height: 85px;
+  height: 64px;
   position: relative;
+  transition: background-color 0.15s ease;
 }
 .inmocms-table tr td.check-field {
   min-width: 54px;
@@ -65,15 +76,15 @@
   width: 54px;
 }
 .inmocms-table tbody tr td {
-  border-top: 1px solid #eee;
-  color: #171b1e;
+  border-top: 1px solid #f1f5f9;
+  color: #334155;
   cursor: pointer;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 400;
-  padding: 0 10px;
+  padding: 0 14px;
 }
 .inmocms-table tbody tr:hover {
-  background: #f3f4f6;
+  background: #f8fafc;
 }
 .inmocms-table tbody tr td .foto {
   align-items: center;

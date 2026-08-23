@@ -59,7 +59,6 @@ const CampaignDetails = () => {
   const apiUrl = process.env.REACT_APP_API_URL;
   const { id } = useParams(); // Obtener ID de la URL
   const [campaign, setCampaign] = useState(null);
-  const apiUrlUpload = process.env.REACT_APP_UP_MULTIMEDIA;
 
   const [pedidoId, setPedidoId] = useState(null);
   const [showAsignar, setShowAsignar] = useState(false);
@@ -86,9 +85,9 @@ const CampaignDetails = () => {
 
   const toggleImageSelection = (item) => {
     setSelectedImages((prev) => {
-      const exists = prev.some((img) => img.url === item.url);
+      const exists = prev.some((img) => img.id === item.id);
       return exists
-        ? prev.filter((img) => img.url !== item.url)
+        ? prev.filter((img) => img.id !== item.id)
         : [...prev, item];
     });
   };
@@ -102,6 +101,7 @@ const CampaignDetails = () => {
     setLoadingDelete(true);
 
     try {
+      // El backend elimina el registro y el objeto en el bucket S3 en un solo paso.
       const deleteMultimedia = await axios.post(
         `${apiUrl}/deleteMultimediaMasive`,
         { pedidos: selectedImages },
@@ -113,26 +113,14 @@ const CampaignDetails = () => {
         },
       );
 
-      if ((deleteMultimedia.status = "success")) {
-        const payload = {
-          urls: selectedImages.map((img) => img.url),
-        };
-        const response = await axios.delete(`${apiUrlUpload}/index.php`, {
-          headers: {
-            "Content-Type": "application/json", // <--- JSON, no multipart
-          },
-          data: payload,
-        });
-        const data = response.data;
-        if (data.success) {
-          message.success("Imágenes eliminadas correctamente");
-          await fetchCampaignData(); // vuelve a cargar los datos del pedido
-          setPedidoIdParaActualizarMultimedia(pedidoId);
+      if (deleteMultimedia.data.status === "success") {
+        message.success("Imágenes eliminadas correctamente");
+        await fetchCampaignData(); // vuelve a cargar los datos del pedido
+        setPedidoIdParaActualizarMultimedia(pedidoId);
 
-          setSelectedImages([]);
-        }
+        setSelectedImages([]);
       } else {
-        new Error(deleteMultimedia.error);
+        throw new Error(deleteMultimedia.data.message);
       }
     } catch (error) {
       console.error("Error al eliminar imágenes:", error);
@@ -710,48 +698,36 @@ const CampaignDetails = () => {
     buscar_repartidores();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [0]);
-  // ✅ Subir mas fotos a la API
+  // ✅ Subir mas fotos directamente al backend, que las guarda en el bucket S3
   const handleUploadMorePhotos = async (files) => {
     const formData = new FormData();
-    const searchPedido = pedidos.find((p) => p.id === pedidoId);
 
-    formData.append("folder", `${searchPedido.idSolicitante}`);
+    formData.append("pedido_id", pedidoId);
 
     files.forEach((file) => {
-      formData.append("files[]", file);
+      formData.append("files", file);
     });
 
     try {
-      const response = await axios.post(`${apiUrlUpload}/index.php`, formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
-      const data = response.data;
-      console.log(data);
-      if (data.success) {
-        console.log(data.files);
-        const responseEnviiosMultimedia = await axios.post(
-          `${apiUrl}/pedidosMultimedia`,
-          { files: data.files, pedido_id: pedidoId },
-          {
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${auth.token}`,
-            },
+      const response = await axios.post(
+        `${apiUrl}/pedidosMultimedia`,
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+            Authorization: `Bearer ${auth.token}`,
           },
-        );
-        console.log(response);
-        const dataMultimedia = responseEnviiosMultimedia.data;
-        if (dataMultimedia.status === "success") {
-          message.success("Se subieron las imagenes correctamente");
-          await fetchCampaignData();
-          setPedidoIdParaActualizarMultimedia(pedidoId);
+        },
+      );
+      const dataMultimedia = response.data;
+      if (dataMultimedia.status === "success") {
+        message.success("Se subieron las imagenes correctamente");
+        await fetchCampaignData();
+        setPedidoIdParaActualizarMultimedia(pedidoId);
 
-          setModalVisibleMorePhotos(false);
-        } else {
-          new Error("error de compilacion");
-        }
+        setModalVisibleMorePhotos(false);
+      } else {
+        throw new Error(dataMultimedia.message || "error al subir imágenes");
       }
     } catch (error) {
       console.error("Error al subir imágenes:", error);

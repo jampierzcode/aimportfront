@@ -1,72 +1,63 @@
 import dayjs from "dayjs";
 import React from "react";
-import { BsBellFill, BsJustifyRight } from "react-icons/bs";
+import { BsJustifyRight } from "react-icons/bs";
 
 import { useAuth } from "../AuthContext";
+import UserMenu from "../ui/UserMenu";
+import NotificationBell from "../ui/NotificationBell";
+
+const getInitials = (value) => {
+  if (!value) return "?";
+  const clean = value.split("@")[0].replace(/[._-]+/g, " ").trim();
+  const parts = clean.split(" ").filter(Boolean);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+};
 
 const TopNavigation = ({ open, setOpen }) => {
   const { auth } = useAuth();
 
-  const last_conection = dayjs().format("DD/MM • HH:mm");
+  const last_conection = dayjs().format("DD MMM • HH:mm");
+  const displayName = auth?.user?.name || auth?.user?.email;
+  const initials = getInitials(auth?.user?.name || auth?.user?.email);
+
   return (
     <>
-      <div className="hidden bg-white lg:block p-6 border-solid border-b-2 border-gray-8">
-        <div className="hidden lg:flex items-center justify-between">
-          <div className="hidden lg:block">
-            <h1 className="text-gray-2 text-xl font-semibold mr-4 leading-3 inline-block">
-              ¡Hola, {auth?.user?.name}!
+      <div className="hidden lg:block bg-white/80 backdrop-blur px-8 py-4 border-b border-slate-100 sticky top-0 z-10">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-bold text-slate-800 leading-snug">
+              ¡Hola, {displayName}! 👋
             </h1>
-            <span className="text-gray-5 text-xs rounded-lg bg-gray-9 px-3 inline-block">
+            <span className="text-slate-400 text-xs">
               Tu última conexión: {last_conection}
             </span>
           </div>
-          <div className="hidden lg:flex justify-end self-start">
-            <div className="self-center">
-              <div className="cursor-pointer counter-icon relative">
-                <div className="rounded-full bg-dark-purple text-white text-sm flex items-center justify-center w-5 h-5 text-center absolute -top-2 -right-2">
-                  <span className="text-white text-xs">2</span>
-                </div>
-                <BsBellFill className="text-xl ml-2 active-bell text-gray-400" />
-              </div>
-            </div>
-            <div className="ml-3">
-              <div className="flex flex-col items-end">
-                <div>
-                  <button className="flex flex-row items-center outline-none">
-                    <div className="rounded-full flex justify-center items-center self-center border-2 border-gray-2 h-10 w-10 text-16 avatar-background">
-                      <span className="text-gray-2 text-sm font-semibold uppercase">
-                        VL
-                      </span>
-                    </div>
-                    <div className="flex flex-col ml-2 mr-1 text-left">
-                      <h3 className="text-sm font-semibold text-gray-2 -mb-1">
-                        {auth.user.nombre}
-                      </h3>
-                      <span className="text-gray-5 text-xs my-0">
-                        {auth.user.email}
-                      </span>
-                    </div>
-                    <i className="fas fa-chevron-down pl-7 text-gray-5 text-12 border-gray-2"></i>
-                  </button>
-                </div>
-              </div>
-            </div>
+          <div className="flex items-center gap-4">
+            <NotificationBell />
+            <UserMenu
+              initials={initials}
+              name={auth?.user?.name}
+              email={auth?.user?.email}
+              profilePath="/repartidor/perfil"
+            />
           </div>
         </div>
-        <div className="flex ">
-          <span className="title text-18 lg:text-26"></span>
-        </div>
       </div>
-      <div className="block md:hidden p-6">
+      <div className="flex items-center justify-between md:hidden bg-white px-4 py-4 border-b border-slate-100">
+        <h1 className="text-base font-bold text-slate-800">
+          ¡Hola, {displayName}!
+        </h1>
         {open ? (
           <BsJustifyRight
             onClick={() => setOpen(false)}
-            className="bg-white text-dark-purple rounded-full text-3xl border border-dark-purple cursor-pointer"
+            className="bg-white text-primary-600 text-2xl cursor-pointer"
           />
         ) : (
           <BsJustifyRight
             onClick={() => setOpen(true)}
-            className="bg-white text-dark-purple text-3xl cursor-pointer"
+            className="bg-white text-primary-600 text-2xl cursor-pointer"
           />
         )}
       </div>

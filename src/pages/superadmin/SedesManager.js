@@ -1,6 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { Table, Button, Modal, Input, Row, Col, Space, message } from "antd";
+import { Table, Button, Modal, Input, Space, message } from "antd";
+import { FiHome, FiPlus } from "react-icons/fi";
 import axios from "axios";
+
+import PageHeader from "../../components/ui/PageHeader";
+import StatCard from "../../components/ui/StatCard";
+import Card from "../../components/ui/Card";
+import EmptyState from "../../components/ui/EmptyState";
 
 const SedesManager = () => {
   const initialSede = {
@@ -97,11 +103,13 @@ const SedesManager = () => {
       title: "Nombre Referencial",
       dataIndex: "name_referential",
       key: "name_referential",
+      render: (text) => <span className="font-semibold text-slate-700">{text}</span>,
     },
     {
       title: "Dirección",
       dataIndex: "direction",
       key: "direction",
+      render: (text) => <span className="text-slate-500">{text || "—"}</span>,
     },
     {
       title: "Departamento",
@@ -121,6 +129,7 @@ const SedesManager = () => {
     {
       title: "Acciones",
       key: "actions",
+      align: "right",
       render: (_, record) => (
         <Button
           onClick={() => {
@@ -137,69 +146,121 @@ const SedesManager = () => {
   ];
 
   const renderSedeInputs = (sede, setSede, disabled = false) => (
-    <Space direction="vertical" style={{ width: "100%" }}>
-      <Input
-        placeholder="Nombre Referencial"
-        value={sede.name_referential}
-        onChange={(e) =>
-          setSede((prev) => ({ ...prev, name_referential: e.target.value }))
-        }
-        disabled={disabled}
-      />
-      <Input
-        placeholder="Dirección"
-        value={sede.direction}
-        onChange={(e) =>
-          setSede((prev) => ({ ...prev, direction: e.target.value }))
-        }
-        disabled={disabled}
-      />
-      <Input
-        placeholder="Departamento"
-        value={sede.department}
-        onChange={(e) =>
-          setSede((prev) => ({ ...prev, department: e.target.value }))
-        }
-        disabled={disabled}
-      />
-      <Input
-        placeholder="Provincia"
-        value={sede.province}
-        onChange={(e) =>
-          setSede((prev) => ({ ...prev, province: e.target.value }))
-        }
-        disabled={disabled}
-      />
-      <Input
-        placeholder="Distrito"
-        value={sede.district}
-        onChange={(e) =>
-          setSede((prev) => ({ ...prev, district: e.target.value }))
-        }
-        disabled={disabled}
-      />
+    <Space direction="vertical" size={14} style={{ width: "100%" }}>
+      <div>
+        <label className="block text-xs font-semibold text-slate-500 mb-1.5">
+          Nombre Referencial
+        </label>
+        <Input
+          placeholder="Ej: Almacén Central"
+          value={sede.name_referential}
+          onChange={(e) =>
+            setSede((prev) => ({ ...prev, name_referential: e.target.value }))
+          }
+          disabled={disabled}
+        />
+      </div>
+      <div>
+        <label className="block text-xs font-semibold text-slate-500 mb-1.5">
+          Dirección
+        </label>
+        <Input
+          placeholder="Dirección completa"
+          value={sede.direction}
+          onChange={(e) =>
+            setSede((prev) => ({ ...prev, direction: e.target.value }))
+          }
+          disabled={disabled}
+        />
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+        <div>
+          <label className="block text-xs font-semibold text-slate-500 mb-1.5">
+            Departamento
+          </label>
+          <Input
+            placeholder="Departamento"
+            value={sede.department}
+            onChange={(e) =>
+              setSede((prev) => ({ ...prev, department: e.target.value }))
+            }
+            disabled={disabled}
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-semibold text-slate-500 mb-1.5">
+            Provincia
+          </label>
+          <Input
+            placeholder="Provincia"
+            value={sede.province}
+            onChange={(e) =>
+              setSede((prev) => ({ ...prev, province: e.target.value }))
+            }
+            disabled={disabled}
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-semibold text-slate-500 mb-1.5">
+            Distrito
+          </label>
+          <Input
+            placeholder="Distrito"
+            value={sede.district}
+            onChange={(e) =>
+              setSede((prev) => ({ ...prev, district: e.target.value }))
+            }
+            disabled={disabled}
+          />
+        </div>
+      </div>
     </Space>
   );
 
   return (
-    <div>
-      <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
-        <Col>
-          <h2>Gestión de Sedes</h2>
-        </Col>
-        <Col>
-          <Button type="primary" onClick={() => setModalCreateVisible(true)}>
+    <div className="w-full">
+      <PageHeader
+        eyebrow="Logística"
+        title="Sedes"
+        subtitle="Almacenes y puntos registrados en el sistema"
+        actions={
+          <Button
+            type="primary"
+            icon={<FiPlus />}
+            onClick={() => setModalCreateVisible(true)}
+          >
             Crear Sede
           </Button>
-        </Col>
-      </Row>
-
-      <Table
-        dataSource={sedes}
-        columns={columns}
-        rowKey="id"
-        loading={loading}
+        }
       />
+
+      <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <StatCard
+          tone="indigo"
+          icon={<FiHome />}
+          label="Total sedes"
+          value={sedes.length}
+        />
+      </div>
+
+      <Card className="mt-6" padded={false}>
+        <div className="p-2 md:p-3">
+          <Table
+            dataSource={sedes}
+            columns={columns}
+            rowKey="id"
+            loading={loading}
+            locale={{
+              emptyText: (
+                <EmptyState
+                  title="Aún no hay sedes"
+                  subtitle="Crea la primera sede para empezar a asignar pedidos."
+                />
+              ),
+            }}
+          />
+        </div>
+      </Card>
 
       {/* Modal de Crear */}
       <Modal

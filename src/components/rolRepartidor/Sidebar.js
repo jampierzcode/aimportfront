@@ -3,10 +3,18 @@ import { NavLink } from "react-router-dom";
 import LogoutButton from "../LogoutButton";
 
 import { BsArrowLeftShort, BsArrowRightShort } from "react-icons/bs";
-import { IoSpeedometerOutline } from "react-icons/io5";
 import { useAuth } from "../AuthContext";
-
 import { FaTags } from "react-icons/fa";
+import { FiUser } from "react-icons/fi";
+
+const getInitials = (value) => {
+  if (!value) return "?";
+  const clean = value.split("@")[0].replace(/[._-]+/g, " ").trim();
+  const parts = clean.split(" ").filter(Boolean);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+};
 
 const Sidebar = ({ open, setOpen }) => {
   const { auth } = useAuth();
@@ -14,17 +22,6 @@ const Sidebar = ({ open, setOpen }) => {
     setOpen(!open);
   };
   const menuRepartidor = [
-    {
-      is_title_head: false,
-      items: [
-        {
-          title: "Dashboard",
-          url: "/repartidor/dashboard",
-          icon: <IoSpeedometerOutline />,
-        },
-      ],
-    },
-
     {
       is_title_head: true,
       title_head: "Envíos",
@@ -36,97 +33,126 @@ const Sidebar = ({ open, setOpen }) => {
         },
       ],
     },
+    {
+      is_title_head: true,
+      title_head: "Sistema",
+      items: [
+        {
+          title: "Mi Perfil",
+          url: "/repartidor/perfil",
+          icon: <FiUser />,
+        },
+      ],
+    },
   ];
+
+  const displayName = auth?.user?.name || auth?.user?.email || "";
+  const initials = getInitials(auth?.user?.name || auth?.user?.email);
+
   return (
     <div className="">
       <div
-        className={` z-20 h-screen bg-white shadow-lg text-light-font p-5 pt-8 ${
+        className={`z-20 h-screen bg-white border-r border-slate-100 text-light-font p-4 pt-6 flex flex-col ${
           open
-            ? "translate-x-0 md:translate-x-0 w-60 md:w-60"
+            ? "translate-x-0 md:translate-x-0 w-64 md:w-64"
             : "-translate-x-20 w-20 md:translate-x-0 md:block md:w-20"
         } duration-300 fixed md:relative block`}
       >
         {open ? (
           <BsArrowLeftShort
             onClick={handlerSidebar}
-            className="hidden md:block bg-white text-dark-purple rounded-full absolute -right-3 top-9 text-3xl border border-dark-purple cursor-pointer"
+            className="hidden md:block bg-white text-primary-600 rounded-full absolute -right-3 top-9 text-3xl border border-slate-200 shadow-card cursor-pointer hover:bg-slate-50"
           />
         ) : (
           <BsArrowRightShort
             onClick={handlerSidebar}
-            className="hidden md:block bg-white text-dark-purple rounded-full absolute -right-3 top-9 text-3xl border border-dark-purple cursor-pointer"
+            className="hidden md:block bg-white text-primary-600 rounded-full absolute -right-3 top-9 text-3xl border border-slate-200 shadow-card cursor-pointer hover:bg-slate-50"
           />
         )}
 
-        <div className="overflow-hidden">
-          {open ? (
-            <div className="flex items-center justify-center py-4 bg-dark-purple rounded">
-              <img
-                className="h-[100px] mx-auto object-contain block"
-                src="../logo.jpg"
-                alt=""
-              />
-            </div>
-          ) : (
-            <div className="flex items-center justify-center py-4 bg-dark-purple rounded">
-              <img
-                className="h-[100px] mx-auto object-contain block"
-                src="../logo.jpg"
-                alt=""
-              />
-            </div>
-            // <img className="w-[80px]" src="./iconapp.png" alt="" />
-          )}
-        </div>
-        <div className="w-full py-[20px] inline-flex items-center gap-2 px-2 bg-gray-100 rounded">
-          <img
-            src="https://img.freepik.com/free-psd/3d-illustration-human-avatar-profile_23-2150671142.jpg?size=338&ext=jpg&ga=GA1.1.1141335507.1718841600&semt=ais_user"
-            className="w-6 h-6 rounded-full block cursor-pointer float-left mr-2 "
-            alt=""
-          />
-          <div className={`${!open && "scale-0"} overflow-hidden`}>
-            <h1 className="text-lg font-bold text-start overflow-hidden text-ellipsis">
-              {auth.user.nombre}
-            </h1>
-            <h1 className="text-sm text-start">{auth.user.email}</h1>
-            <span className="text-sm font-bold text-start">repartidor</span>
+        <div className="overflow-hidden shrink-0">
+          <div className="flex items-center justify-center bg-primary-600 rounded-xl py-3">
+            <img
+              className={`${open ? "h-14" : "h-10"} mx-auto object-contain block transition-all duration-300`}
+              src="/logo.jpg"
+              alt="Aimport Cargo"
+            />
           </div>
         </div>
-        <nav className="pt-2 flex flex-col gap-2">
+
+        <div
+          className={`w-full mt-4 py-3 flex items-center gap-3 bg-slate-50 rounded-xl shrink-0 ${
+            open ? "px-3" : "px-0 justify-center"
+          }`}
+        >
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary-100 text-sm font-bold text-primary-700">
+            {initials}
+          </div>
+          {open ? (
+            <div className="min-w-0 overflow-hidden">
+              <h1 className="text-sm font-bold text-slate-800 text-start overflow-hidden text-ellipsis whitespace-nowrap">
+                {displayName}
+              </h1>
+              <span className="inline-block mt-0.5 text-[11px] font-semibold uppercase tracking-wide text-primary-600">
+                repartidor
+              </span>
+            </div>
+          ) : null}
+        </div>
+
+        <nav className="pt-4 flex flex-col gap-1 flex-1 overflow-y-auto overflow-x-hidden">
           {menuRepartidor.map((item, index) => (
-            <div key={index}>
+            <div key={index} className={index > 0 ? "mt-1" : ""}>
               {item.is_title_head ? (
-                <span className="font-bold text-sm">{item.title_head}</span>
+                <span
+                  className={`block mt-3 mb-1 px-2 text-[11px] font-bold uppercase tracking-wider text-slate-400 ${
+                    !open && "text-center"
+                  }`}
+                >
+                  {open ? item.title_head : "•"}
+                </span>
               ) : null}
-              <span>{}</span>
               {item.items.map((i, index) => {
                 return (
                   <NavLink
                     key={index}
                     to={i.url}
                     className={({ isActive }) =>
-                      isActive
-                        ? "bg-gray-100 text-dark-purple  font-bold text-sm p-2 flex gap-3 items-center rounded duration-300 transition-all"
-                        : "p-2 text-sm hover:bg-gray-100 hover:text-dark-purple  transition-all rounded duration-300 flex gap-3 items-center"
+                      `group relative flex items-center gap-3 rounded-lg p-2.5 text-sm transition-all duration-200 ${
+                        isActive
+                          ? "bg-primary-50 text-primary-700 font-semibold"
+                          : "text-slate-500 font-medium hover:bg-slate-50 hover:text-primary-600"
+                      } ${!open ? "justify-center" : ""}`
                     }
                   >
-                    <span className="block float-left text-xl">{i.icon}</span>
-                    <span className={`text-sm flex-1 ${!open && "hidden"}`}>
-                      {i.title}
-                    </span>
+                    {({ isActive }) => (
+                      <>
+                        <span
+                          className={`absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-primary-600 transition-opacity ${
+                            isActive ? "opacity-100" : "opacity-0"
+                          }`}
+                        />
+                        <span className="block text-lg shrink-0">{i.icon}</span>
+                        <span className={`text-sm flex-1 text-left ${!open && "hidden"}`}>
+                          {i.title}
+                        </span>
+                      </>
+                    )}
                   </NavLink>
                 );
               })}
             </div>
           ))}
-          <LogoutButton open={open} />
         </nav>
+        <div className="pt-2 mt-2 border-t border-slate-100 shrink-0">
+          <LogoutButton open={open} />
+        </div>
       </div>
       <div
         onClick={() => setOpen(false)}
         className={`${
           open ? "" : "hidden"
-        } block md:hidden w-full bg-gray-900 opacity-50 absolute top-0 h-full bottom-0 left-0 right-0 z-10`}
+        } block md:hidden w-full bg-slate-900 opacity-50 fixed top-0 h-full bottom-0 left-0 right-0 z-10`}
       ></div>
     </div>
   );
